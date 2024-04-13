@@ -297,6 +297,12 @@ class HTMLParser:
         Args:
             article_soup (bs4.BeautifulSoup): BeautifulSoup instance
         """
+        author = [' '.join(article_soup.find(class_='author').text.split()[1:])]
+        if author:
+            self.article.author = author
+        else:
+            self.article.author = ["NOT FOUND"]
+        self.article.title = article_soup.find(itemprop="name headline").text.strip()
 
     # def unify_date_format(self, date_str: str) -> datetime.datetime:
     #     """
@@ -316,10 +322,12 @@ class HTMLParser:
         Returns:
             Union[Article, bool, list]: Article instance
         """
-        response = requests.get(self.full_url)
+        response = make_request(self.full_url, self.config)
         src = response.text
         article_bs = BeautifulSoup(src, 'lxml')
         self._fill_article_with_text(article_bs)
+        self._fill_article_with_meta_information(article_bs)
+
         return self.article
 
 
