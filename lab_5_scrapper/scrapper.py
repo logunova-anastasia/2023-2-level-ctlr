@@ -5,12 +5,12 @@ Crawler implementation.
 import json
 import pathlib
 import requests
-from core_utils.article.article import Article
-from typing import Pattern, Union
-from core_utils.config_dto import ConfigDTO
 from bs4 import BeautifulSoup
 from core_utils.article.io import to_raw
 from core_utils.constants import CRAWLER_CONFIG_PATH, ASSETS_PATH
+from core_utils.article.article import Article
+from core_utils.config_dto import ConfigDTO
+from typing import Pattern, Union
 
 
 class IncorrectSeedURLError(Exception):
