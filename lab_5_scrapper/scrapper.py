@@ -4,12 +4,15 @@ Crawler implementation.
 # pylint: disable=too-many-arguments, too-many-instance-attributes, unused-import, undefined-variable
 import json
 import pathlib
+import re
 import requests
 from bs4 import BeautifulSoup
 from core_utils.article.io import to_raw
 from core_utils.constants import CRAWLER_CONFIG_PATH, ASSETS_PATH
 from core_utils.article.article import Article
 from core_utils.config_dto import ConfigDTO
+from random import randrange
+from time import sleep
 from typing import Pattern, Union
 
 
@@ -92,7 +95,7 @@ class Config:
             raise IncorrectSeedURLError
 
         for seed_url in self.config_dto.seed_urls:
-            if not(isinstance(seed_url, str) and ('https://' or 'www.') in seed_url):
+            if not re.match(r"https?://(www.)?", seed_url):
                 raise IncorrectSeedURLError
 
         if not isinstance(self.config_dto.total_articles, int) or self.config_dto.total_articles <= 0:
@@ -189,6 +192,7 @@ def make_request(url: str, config: Config) -> requests.models.Response:
     Returns:
         requests.models.Response: A response from a request
     """
+    sleep(randrange(5))
     return requests.get(url=url, headers=config.get_headers(),
                         timeout=config.get_timeout(), verify=config.get_verify_certificate())
 
