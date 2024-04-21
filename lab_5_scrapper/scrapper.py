@@ -2,9 +2,11 @@
 Crawler implementation.
 """
 # pylint: disable=too-many-arguments, too-many-instance-attributes, unused-import, undefined-variable
+import datetime
 import json
 import pathlib
 import re
+import shutil
 from random import randrange
 from time import sleep
 from typing import Pattern, Union
@@ -80,14 +82,7 @@ class Config:
         with open(self.path_to_config, 'r', encoding='utf-8') as file:
             config = json.load(file)
 
-        return ConfigDTO(
-            seed_urls=config["seed_urls"],
-            total_articles_to_find_and_parse=config["total_articles_to_find_and_parse"],
-            headers=config["headers"],
-            encoding=config["encoding"],
-            timeout=config["timeout"],
-            should_verify_certificate=config["should_verify_certificate"],
-            headless_mode=config["headless_mode"])
+        return ConfigDTO(**config)
 
     def _validate_config_content(self) -> None:
         """
@@ -97,12 +92,12 @@ class Config:
             raise IncorrectSeedURLError
 
         for seed_url in self.config_dto.seed_urls:
-            if not re.match(r"https?://(www.)?", seed_url):
+            if not re.match(r"https?://(www.)?scientificrussia\.ru/news", seed_url):
                 raise IncorrectSeedURLError
 
         if not isinstance(self.config_dto.total_articles, int) or self.config_dto.total_articles <= 0:
             raise IncorrectNumberOfArticlesError
-        
+
         if not 0 < self.config_dto.total_articles < 150:
             raise NumberOfArticlesOutOfRangeError
 
@@ -228,7 +223,7 @@ class Crawler:
             str: Url from HTML
         """
         url = ''
-        for div in article_bs.find_all("div", {"class": "title"}, limit=24):
+        for div in article_bs.find(class_="card-body").find_all("div", {"class": "title"}):
             for link in div.select("a"):
                 url = link['href']
         return self.url_pattern + url
@@ -238,17 +233,15 @@ class Crawler:
         Find articles.
         """
         urls = []
+        while len(urls) < self.config.get_num_articles():
+            for url in self.get_search_urls():
+                response = make_request(url, self.config)
 
-        for url in self.get_search_urls():
-            response = make_request(url, self.config)
+                if not response.ok:
+                    continue
 
-            if not response.ok:
-                continue
-
-            src = response.text
-            soup = BeautifulSoup(src, 'lxml')
-            urls.append(self._extract_url(soup))
-
+                soup = BeautifulSoup(response.text, 'lxml')
+                urls.append(self._extract_url(soup))
         self.urls.extend(urls)
 
     def get_search_urls(self) -> list:
@@ -291,10 +284,10 @@ class HTMLParser:
             article_soup (bs4.BeautifulSoup): BeautifulSoup instance
         """
         text = article_soup.find_all(style="text-align: justify;")
-        article = ''
+        article = []
         for paragraph in text:
-            article += paragraph.text
-        self.article.text = article
+            article.append(paragraph.text)
+        self.article.text = ''.join(article)
 
     def _fill_article_with_meta_information(self, article_soup: BeautifulSoup) -> None:
         """
@@ -310,16 +303,16 @@ class HTMLParser:
             self.article.author = ["NOT FOUND"]
         self.article.title = article_soup.find(itemprop="name headline").text.strip()
 
-    # def unify_date_format(self, date_str: str) -> datetime.datetime:
-    #     """
-    #     Unify date format.
-    #
-    #     Args:
-    #         date_str (str): Date in text format
-    #
-    #     Returns:
-    #         datetime.datetime: Datetime object
-    #     """
+    def unify_date_format(self, date_str: str) -> datetime.datetime:
+        """
+        Unify date format.
+
+        Args:
+            date_str (str): Date in text format
+
+        Returns:
+            datetime.datetime: Datetime object
+        """
 
     def parse(self) -> Union[Article, bool, list]:
         """
@@ -344,9 +337,8 @@ def prepare_environment(base_path: Union[pathlib.Path, str]) -> None:
     Args:
         base_path (Union[pathlib.Path, str]): Path where articles stores
     """
-    if not base_path.exists():
-        base_path.mkdir()
-    base_path.rmdir()
+    if base_path.exists():
+        shutil.rmtree(base_path)
     base_path.mkdir()
 
 
