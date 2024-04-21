@@ -297,13 +297,27 @@ class HTMLParser:
             article_soup (bs4.BeautifulSoup): BeautifulSoup instance
         """
         author = [' '.join(article_soup.find(class_='author').text.split()[1:])]
+
         if author:
             self.article.author = author
         else:
             self.article.author = ["NOT FOUND"]
+
         title = article_soup.find(itemprop="name headline")
+
         if title:
             self.article.title = title.text.strip()
+
+        date = article_soup.find('time').text
+        self.article.date = self.unify_date_format(date)
+
+        list_of_keywords = []
+        keywords = article_soup.find_all(itemprop="keywords")
+
+        for i in keywords:
+            list_of_keywords.append(i.text)
+
+        self.article.topics = list_of_keywords
 
     def unify_date_format(self, date_str: str) -> datetime.datetime:
         """
@@ -315,6 +329,7 @@ class HTMLParser:
         Returns:
             datetime.datetime: Datetime object
         """
+        return datetime.datetime.strptime(date_str, '%d.%m.%Y %H:%M')
 
     def parse(self) -> Union[Article, bool, list]:
         """
