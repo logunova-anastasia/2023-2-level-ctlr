@@ -324,8 +324,7 @@ class HTMLParser:
             Union[Article, bool, list]: Article instance
         """
         response = make_request(self.full_url, self.config)
-        src = response.text
-        article_bs = BeautifulSoup(src, 'lxml')
+        article_bs = BeautifulSoup(response.text, 'lxml')
         self._fill_article_with_text(article_bs)
         self._fill_article_with_meta_information(article_bs)
 
@@ -353,7 +352,7 @@ def main() -> None:
     crawler.find_articles()
     prepare_environment(ASSETS_PATH)
 
-    for id_num, url in enumerate(crawler.get_search_urls()):
+    for id_num, url in enumerate(crawler.urls, 1):
         parser = HTMLParser(url, id_num, conf)
         article = parser.parse()
         if isinstance(article, Article):
