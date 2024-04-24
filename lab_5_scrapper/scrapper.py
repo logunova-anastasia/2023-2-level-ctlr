@@ -375,8 +375,9 @@ class CrawlerRecursive(Crawler):
         self.get_info()
 
     def get_info(self) -> None:
-        with open(PROJECT_ROOT / 'tmp' / 'recursive_crawler.json', 'r', encoding='utf-8') as infile:
-            data = json.load(infile)
+        if (ASSETS_PATH.parent / 'recursive_crawler.json').exists():
+            with open(ASSETS_PATH.parent / 'recursive_crawler.json', 'r', encoding='utf-8') as infile:
+                data = json.load(infile)
 
             self.urls = data['urls']
             self.num_of_urls = data['num_visited_urls']
@@ -390,7 +391,7 @@ class CrawlerRecursive(Crawler):
             'possible_urls': self.possible_urls,
             'visited_urls': self.visited_urls
         }
-        with open(PROJECT_ROOT / 'tmp' / 'recursive_crawler.json', 'w',
+        with open(ASSETS_PATH.parent / 'recursive_crawler.json', 'w',
                   encoding='utf-8') as file:
             json.dump(data, file, indent=4)
 
