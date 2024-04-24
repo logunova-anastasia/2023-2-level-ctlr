@@ -374,7 +374,7 @@ class CrawlerRecursive(Crawler):
         self.visited_urls = []
         self.get_info()
 
-    def get_info(self):
+    def get_info(self) -> None:
         if (pathlib.Path(__file__).parent.parent / 'tmp' / 'recursive_crawler.json').exists():
 
             with open(pathlib.Path(__file__).parent.parent / 'tmp' / 'recursive_crawler.json', 'r', encoding='utf-8') as infile:
@@ -385,7 +385,7 @@ class CrawlerRecursive(Crawler):
             self.possible_urls = data['possible_urls']
             self.visited_urls = data['visited_urls']
 
-    def save_info(self):
+    def save_info(self) -> None:
         data = {
             'num_visited_urls': self.num_of_urls,
             'urls': self.urls,
@@ -396,7 +396,7 @@ class CrawlerRecursive(Crawler):
                   encoding='utf-8') as file:
             json.dump(data, file, indent=4)
 
-    def find_articles(self):
+    def find_articles(self) -> None:
         url = self.possible_urls[self.num_of_urls-1]
 
         if url not in self.visited_urls:
@@ -448,7 +448,7 @@ def main() -> None:
             to_meta(article)
 
 
-def recursive_main():
+def recursive_main() -> None:
     conf = Config(CRAWLER_CONFIG_PATH)
     crawler = CrawlerRecursive(conf)
     crawler.find_articles()
