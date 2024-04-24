@@ -17,7 +17,7 @@ from bs4 import BeautifulSoup
 from core_utils.article.article import Article
 from core_utils.article.io import to_meta, to_raw
 from core_utils.config_dto import ConfigDTO
-from core_utils.constants import ASSETS_PATH, CRAWLER_CONFIG_PATH
+from core_utils.constants import ASSETS_PATH, CRAWLER_CONFIG_PATH, PROJECT_ROOT
 
 
 class IncorrectSeedURLError(Exception):
@@ -375,7 +375,7 @@ class CrawlerRecursive(Crawler):
         self.get_info()
 
     def get_info(self) -> None:
-        if (pathlib.Path(__file__).parent.parent / 'tmp' / 'recursive_crawler.json').exists():
+        if (PROJECT_ROOT / 'tmp' / 'recursive_crawler.json').exists():
 
             with open(pathlib.Path(__file__).parent.parent / 'tmp' / 'recursive_crawler.json', 'r', encoding='utf-8') as infile:
                 data = json.load(infile)
@@ -392,7 +392,7 @@ class CrawlerRecursive(Crawler):
             'possible_urls': self.possible_urls,
             'visited_urls': self.visited_urls
         }
-        with open(pathlib.Path(__file__).parent.parent / 'tmp' / 'recursive_crawler.json', 'w',
+        with open(PROJECT_ROOT / 'tmp' / 'recursive_crawler.json', 'w',
                   encoding='utf-8') as file:
             json.dump(data, file, indent=4)
 
