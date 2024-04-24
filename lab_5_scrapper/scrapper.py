@@ -450,9 +450,9 @@ def main() -> None:
 def recursive_main() -> None:
     print(PROJECT_ROOT)
     conf = Config(CRAWLER_CONFIG_PATH)
+    prepare_environment(ASSETS_PATH)
     crawler = CrawlerRecursive(conf)
     crawler.find_articles()
-    prepare_environment(ASSETS_PATH)
 
     for id_num, url in enumerate(crawler.urls, 1):
         parser = HTMLParser(url, id_num, conf)
