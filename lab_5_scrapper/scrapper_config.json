@@ -1,10 +1,10 @@
 {
    "seed_urls":[
       "https://scientificrussia.ru/news",
-      "https://scientificrussia.ru/news/1224",
-      "https://scientificrussia.ru/news/1223",
-      "https://scientificrussia.ru/news/1222",
-      "https://scientificrussia.ru/news/1221"
+      "https://scientificrussia.ru/news/1233",
+      "https://scientificrussia.ru/news/1232",
+      "https://scientificrussia.ru/news/1231",
+      "https://scientificrussia.ru/news/12230"
    ],
    "headers":{
       "Accept":"*/*",

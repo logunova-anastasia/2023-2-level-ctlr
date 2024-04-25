@@ -222,27 +222,29 @@ class Crawler:
         Returns:
             str: Url from HTML
         """
-        url = ''
-        for div in article_bs.find(class_="card-body").find_all("div", {"class": "title"}):
-            for link in div.select("a"):
-                url = link['href']
-        return self.url_pattern + url
+        link = article_bs.get('href')
+        if link and '/articles/' in link and '/tags' not in link:
+            return self.url_pattern + str(article_bs.get('href'))
+        return ''
 
     def find_articles(self) -> None:
         """
         Find articles.
         """
-        urls = []
-        while len(urls) < self.config.get_num_articles():
-            for url in self.get_search_urls():
-                response = make_request(url, self.config)
+        for url in self.get_search_urls():
+            response = make_request(url, self.config)
 
-                if not response.ok:
-                    continue
+            if not response.ok:
+                continue
 
-                soup = BeautifulSoup(response.text, 'lxml')
-                urls.append(self._extract_url(soup))
-        self.urls.extend(urls)
+            soup = BeautifulSoup(response.text, 'lxml')
+
+            for div in soup.find(class_="card-body").find_all("a"):
+                if self._extract_url(div) and self._extract_url(div) not in self.urls:
+                    self.urls.append(self._extract_url(div))
+
+                if len(self.urls) >= self.config.get_num_articles():
+                    return
 
     def get_search_urls(self) -> list:
         """
@@ -463,4 +465,4 @@ def recursive_main() -> None:
 
 
 if __name__ == "__main__":
-    recursive_main()
+    main()
