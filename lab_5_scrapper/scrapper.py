@@ -442,7 +442,7 @@ class CrawlerRecursive(Crawler):
         articles = []
 
         for div in article_bs.find(class_="card-body").find_all("div", {"class": "title"}):
-            articles.append(div.find('a').get('href'))
+            articles.append(self._extract_url(div))
 
         for i in links:
             if i.get('href'):
@@ -453,7 +453,7 @@ class CrawlerRecursive(Crawler):
 
                 if link_url not in self.possible_urls:
                     self.possible_urls.append(link_url)
-                if link_url not in self.urls and i.get('href') in articles:
+                if link_url not in self.urls and link_url in articles:
                     self.urls.append(link_url)
 
                 if len(self.urls) >= self.config.get_num_articles():
