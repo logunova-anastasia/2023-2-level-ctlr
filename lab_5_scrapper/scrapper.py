@@ -243,8 +243,8 @@ class Crawler:
         Returns:
             str: Url from HTML
         """
-        if article_bs.find('a')['href']:
-            return self.url_pattern + str(article_bs.find('a')['href'])
+        if article_bs.find('a').get('href'):
+            return self.url_pattern + str(article_bs.find('a').get('href'))
         return ''
 
     def find_articles(self) -> None:
@@ -442,7 +442,7 @@ class CrawlerRecursive(Crawler):
         articles = []
 
         for div in article_bs.find(class_="card-body").find_all("div", {"class": "title"}):
-            articles.append(div.find('a')['href'])
+            articles.append(div.find('a').get('href'))
 
         for i in links:
             if i.get('href'):
