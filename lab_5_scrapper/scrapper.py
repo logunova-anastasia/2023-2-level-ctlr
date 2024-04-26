@@ -17,34 +17,55 @@ from bs4 import BeautifulSoup
 from core_utils.article.article import Article
 from core_utils.article.io import to_meta, to_raw
 from core_utils.config_dto import ConfigDTO
-from core_utils.constants import ASSETS_PATH, CRAWLER_CONFIG_PATH, PROJECT_ROOT
+from core_utils.constants import ASSETS_PATH, CRAWLER_CONFIG_PATH
 
 
 class IncorrectSeedURLError(Exception):
+    """
+    Seed URL does not match standard pattern
+    """
     pass
 
 
 class NumberOfArticlesOutOfRangeError(Exception):
+    """
+    Total number of articles is out of range from 1 to 150
+    """
     pass
 
 
 class IncorrectNumberOfArticlesError(Exception):
+    """
+    Total number of articles to parse is not positive integer
+    """
     pass
 
 
 class IncorrectHeadersError(Exception):
+    """
+    Headers are not in a form of dictionary
+    """
     pass
 
 
 class IncorrectEncodingError(Exception):
+    """
+    Encoding is not a string
+    """
     pass
 
 
 class IncorrectTimeoutError(Exception):
+    """
+    Timeout value is not a positive integer less than 60
+    """
     pass
 
 
 class IncorrectVerifyError(Exception):
+    """
+    Verify certificate value is not True or False
+    """
     pass
 
 
@@ -222,9 +243,8 @@ class Crawler:
         Returns:
             str: Url from HTML
         """
-        link = article_bs.get('href')
-        if link and '/articles/' in link and '/tags' not in link:
-            return self.url_pattern + str(article_bs.get('href'))
+        if article_bs.find('a')['href']:
+            return self.url_pattern + str(article_bs.find('a')['href'])
         return ''
 
     def find_articles(self) -> None:
@@ -238,8 +258,7 @@ class Crawler:
                 continue
 
             soup = BeautifulSoup(response.text, 'lxml')
-
-            for div in soup.find(class_="card-body").find_all("a"):
+            for div in soup.find(class_="card-body").find_all("div", {"class": "title"}):
                 if self._extract_url(div) and self._extract_url(div) not in self.urls:
                     self.urls.append(self._extract_url(div))
 
@@ -254,6 +273,7 @@ class Crawler:
             list: seed_urls param
         """
         return self.config.get_seed_urls()
+
 
 # 10
 # 4, 6, 8, 10
@@ -289,7 +309,7 @@ class HTMLParser:
         article = []
         for paragraph in text:
             article.append(paragraph.text)
-        self.article.text = ''.join(article)
+        self.article.text = '\n'.join(article)
 
     def _fill_article_with_meta_information(self, article_soup: BeautifulSoup) -> None:
         """
@@ -341,10 +361,11 @@ class HTMLParser:
             Union[Article, bool, list]: Article instance
         """
         response = make_request(self.full_url, self.config)
-        article_bs = BeautifulSoup(response.text, 'lxml')
-        self._fill_article_with_text(article_bs)
-        self._fill_article_with_meta_information(article_bs)
 
+        if response.ok:
+            article_bs = BeautifulSoup(response.text, 'lxml')
+            self._fill_article_with_text(article_bs)
+            self._fill_article_with_meta_information(article_bs)
         return self.article
 
 
@@ -371,53 +392,64 @@ class CrawlerRecursive(Crawler):
         super().__init__(config)
         self.start_url = self.config.get_seed_urls()[0]
         self.urls = []
-        self.num_of_urls = 1
         self.possible_urls = [self.start_url]
+        self.path = ASSETS_PATH.parent / 'recursive_crawler.json'
         self.visited_urls = []
         self.get_info()
 
     def get_info(self) -> None:
-        if (ASSETS_PATH.parent / 'recursive_crawler.json').exists():
-            with open(ASSETS_PATH.parent / 'recursive_crawler.json', 'r', encoding='utf-8') as infile:
-                data = json.load(infile)
+        """
+        Get information about the crawler from a file.
+        """
+        if self.path.exists():
+            with open(self.path, 'r', encoding='utf-8') as file:
+                data = json.load(file)
 
             self.urls = data['urls']
-            self.num_of_urls = data['num_visited_urls']
             self.possible_urls = data['possible_urls']
             self.visited_urls = data['visited_urls']
 
     def save_info(self) -> None:
+        """
+        Save information about the crawler.
+        """
         data = {
-            'num_visited_urls': self.num_of_urls,
             'urls': self.urls,
+            'number of collected urls': len(self.urls),
             'possible_urls': self.possible_urls,
             'visited_urls': self.visited_urls
         }
-        with open(ASSETS_PATH.parent / 'recursive_crawler.json', 'w',
-                  encoding='utf-8') as file:
+        with open(self.path, 'w', encoding='utf-8') as file:
             json.dump(data, file, indent=4)
 
     def find_articles(self) -> None:
-        url = self.possible_urls[self.num_of_urls-1]
+        """
+        Find articles.
+        """
+        url = self.possible_urls[len(self.visited_urls)]
 
         if url not in self.visited_urls:
             self.visited_urls.append(url)
 
         response = make_request(url, self.config)
+
+        if not response.ok:
+            return
+
         article_bs = BeautifulSoup(response.text, 'lxml')
 
         links = article_bs.find_all('a')
         articles = []
+
         for div in article_bs.find(class_="card-body").find_all("div", {"class": "title"}):
-            for link in div.select("a"):
-                articles.append(link['href'])
+            articles.append(div.find('a')['href'])
 
         for i in links:
             if i.get('href'):
                 if 'https' in i.get('href'):
                     link_url = i.get('href')
                 else:
-                    link_url = 'https://scientificrussia.ru' + i.get('href')
+                    link_url = self.url_pattern + i.get('href')
 
                 if link_url not in self.possible_urls:
                     self.possible_urls.append(link_url)
@@ -428,7 +460,6 @@ class CrawlerRecursive(Crawler):
                     self.save_info()
                     return
 
-        self.num_of_urls += 1
         self.find_articles()
 
 
@@ -450,18 +481,21 @@ def main() -> None:
 
 
 def recursive_main() -> None:
-    print(PROJECT_ROOT)
     conf = Config(CRAWLER_CONFIG_PATH)
     prepare_environment(ASSETS_PATH)
     crawler = CrawlerRecursive(conf)
-    crawler.find_articles()
+    try:
+        crawler.find_articles()
 
-    for id_num, url in enumerate(crawler.urls, 1):
-        parser = HTMLParser(url, id_num, conf)
-        article = parser.parse()
-        if isinstance(article, Article):
-            to_raw(article)
-            to_meta(article)
+        for id_num, url in enumerate(crawler.urls, 1):
+            parser = HTMLParser(url, id_num, conf)
+            article = parser.parse()
+            if isinstance(article, Article):
+                to_raw(article)
+                to_meta(article)
+
+    except KeyboardInterrupt:
+        crawler.save_info()
 
 
 if __name__ == "__main__":
