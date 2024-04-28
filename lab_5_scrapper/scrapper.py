@@ -210,7 +210,7 @@ def make_request(url: str, config: Config) -> requests.models.Response:
     Returns:
         requests.models.Response: A response from a request
     """
-    sleep(randrange(5))
+    sleep(randrange(3))
     return requests.get(url=url, headers=config.get_headers(),
                         timeout=config.get_timeout(), verify=config.get_verify_certificate())
 
@@ -243,9 +243,7 @@ class Crawler:
         Returns:
             str: Url from HTML
         """
-        if article_bs.find('a').get('href'):
-            return self.url_pattern + str(article_bs.find('a').get('href'))
-        return ''
+        return self.url_pattern + str(article_bs.find('a').get('href')) if article_bs.find('a').get('href') else ''
 
     def find_articles(self) -> None:
         """
@@ -318,10 +316,10 @@ class HTMLParser:
         Args:
             article_soup (bs4.BeautifulSoup): BeautifulSoup instance
         """
-        author = article_soup.find(class_='author')
+        author = article_soup.find(class_="props distant").find_all(class_='author')
 
         if author:
-            self.article.author = [' '.join(author.text.split()[1:])]
+            self.article.author = [i.text.strip() for i in author]
         else:
             self.article.author = ["NOT FOUND"]
 
@@ -382,6 +380,9 @@ def prepare_environment(base_path: Union[pathlib.Path, str]) -> None:
 
 
 class CrawlerRecursive(Crawler):
+    """
+    Recursive Crawler implementation
+    """
     def __init__(self, config: Config) -> None:
         """
         Initialize an instance of the Crawler class.
@@ -401,13 +402,15 @@ class CrawlerRecursive(Crawler):
         """
         Get information about the crawler from a file.
         """
-        if self.path.exists():
-            with open(self.path, 'r', encoding='utf-8') as file:
-                data = json.load(file)
+        if not self.path.exists():
+            return
 
-            self.urls = data['urls']
-            self.possible_urls = data['possible_urls']
-            self.visited_urls = data['visited_urls']
+        with open(self.path, 'r', encoding='utf-8') as file:
+            data = json.load(file)
+
+        self.urls = data['urls']
+        self.possible_urls = data['possible_urls']
+        self.visited_urls = data['visited_urls']
 
     def save_info(self) -> None:
         """
@@ -445,20 +448,23 @@ class CrawlerRecursive(Crawler):
             articles.append(self._extract_url(div))
 
         for i in links:
-            if i.get('href'):
-                if 'https' in i.get('href'):
-                    link_url = i.get('href')
-                else:
-                    link_url = self.url_pattern + i.get('href')
+            if not i.get('href'):
+                continue
 
-                if link_url not in self.possible_urls:
-                    self.possible_urls.append(link_url)
-                if link_url not in self.urls and link_url in articles:
-                    self.urls.append(link_url)
+            if 'https' in i.get('href'):
+                link_url = i.get('href')
+            else:
+                link_url = self.url_pattern + i.get('href')
 
-                if len(self.urls) >= self.config.get_num_articles():
-                    self.save_info()
-                    return
+            if link_url not in self.possible_urls:
+                self.possible_urls.append(link_url)
+            if link_url not in self.urls and link_url in articles:
+                self.urls.append(link_url)
+
+            self.save_info()
+
+            if len(self.urls) >= self.config.get_num_articles():
+                return
 
         self.find_articles()
 
@@ -484,18 +490,14 @@ def recursive_main() -> None:
     conf = Config(CRAWLER_CONFIG_PATH)
     prepare_environment(ASSETS_PATH)
     crawler = CrawlerRecursive(conf)
-    try:
-        crawler.find_articles()
+    crawler.find_articles()
 
-        for id_num, url in enumerate(crawler.urls, 1):
-            parser = HTMLParser(url, id_num, conf)
-            article = parser.parse()
-            if isinstance(article, Article):
-                to_raw(article)
-                to_meta(article)
-
-    except KeyboardInterrupt:
-        crawler.save_info()
+    for id_num, url in enumerate(crawler.urls, 1):
+        parser = HTMLParser(url, id_num, conf)
+        article = parser.parse()
+        if isinstance(article, Article):
+            to_raw(article)
+            to_meta(article)
 
 
 if __name__ == "__main__":
