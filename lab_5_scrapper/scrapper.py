@@ -303,12 +303,11 @@ class HTMLParser:
         Args:
             article_soup (bs4.BeautifulSoup): BeautifulSoup instance
         """
-        text = article_soup.find(itemprop="articleBody")
-
-        paragraphs = text.find_all('p')
-        texts = [p.text for p in paragraphs]
-
-        self.article.text = '\n'.join(texts)
+        text = article_soup.find_all(style="text-align: justify;")
+        article = []
+        for paragraph in text:
+            article.append(paragraph.text)
+        self.article.text = '\n'.join(article)
 
     def _fill_article_with_meta_information(self, article_soup: BeautifulSoup) -> None:
         """
