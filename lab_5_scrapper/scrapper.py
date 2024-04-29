@@ -305,8 +305,10 @@ class HTMLParser:
         """
         text = article_soup.find_all(style="text-align: justify;")
         article = []
+
         for paragraph in text:
             article.append(paragraph.text)
+
         self.article.text = '\n'.join(article)
 
     def _fill_article_with_meta_information(self, article_soup: BeautifulSoup) -> None:
