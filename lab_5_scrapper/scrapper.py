@@ -210,7 +210,7 @@ def make_request(url: str, config: Config) -> requests.models.Response:
     Returns:
         requests.models.Response: A response from a request
     """
-    sleep(randrange(3))
+    sleep(randrange(2))
     return requests.get(url=url, headers=config.get_headers(),
                         timeout=config.get_timeout(), verify=config.get_verify_certificate())
 
