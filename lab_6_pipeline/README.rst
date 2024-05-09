@@ -20,25 +20,32 @@ Python competencies required to complete this tutorial:
       lemmatization etc.;
    -  extracting linguistic features from the raw text: part of speech,
       case etc.
+   -  collecting statistics from text: POS frequency,
+      grammar structures extraction etc.
 
 Processing data breaks down in the following steps:
 
 1. Loading raw data.
-2. Tokenizing the text.
-3. Performing necessary transformations, such as lemmatization or
-   stemming.
-4. Extracting valuable information from the text, such as detect each
-   word part of speech.
-5. Saving necessary information.
+2. Cleaning the text.
+3. Extracting valuable information from the text such as parts of speech, lemmas,
+   syntactic positions etc.
+4. Saving extracted information in the specified format.
+5. Aggregating saved linguistic information to answer questions about data.
 
 As a part of the second milestone, you need to implement processing
 logic as a ``pipeline.py`` module. When it is run as a standalone Python
 program, it should perform all aforementioned stages.
 
 During this assignment you will be working with the UD text description
-format (``.conllu`` extension). Refer to :ref:`ud-format-label`
-for the explanation on linguistic information extraction,
-mappings to ``pymystem3`` and ``pymorphy2``, as well as fields description.
+format (``.conllu`` extension).
+
+.. note:: UD (Universal Dependencies) is a framework for consistent
+          annotation of grammar (parts of speech, morphological features, and
+          syntactic dependencies) across different human languages. All this
+          annotation is usually stored in a format called ``CONLL-U``, that is
+          a vertical, table-like format. More information about the structure
+          of the ``CONLL-U`` format is available on the `dedicated
+          page <https://universaldependencies.org/format.html>`__.
 
 Executing pipeline
 ------------------
@@ -55,6 +62,17 @@ Expected result:
 2. Each article has a processed version (or versions) saved
    in the ``tmp/articles`` directory.
 
+An example ``tmp`` directory content for mark 4:
+
+.. code:: text
+
+   +-- 2023-2-level-ctlr
+       +-- tmp
+           +-- articles
+               +-- 1_raw.txt <- the paper with the ID (from scrapper.py run)
+               +-- 1_meta.json <- the paper meta-information (from scrapper.py run)
+               +-- 1_cleaned.txt <- processed text with no punctuation (by pipeline.py run)
+
 An example ``tmp`` directory content for mark 6:
 
 .. code:: text
@@ -65,7 +83,21 @@ An example ``tmp`` directory content for mark 6:
                +-- 1_raw.txt <- the paper with the ID (from scrapper.py run)
                +-- 1_meta.json <- the paper meta-information (from scrapper.py run)
                +-- 1_cleaned.txt <- processed text with no punctuation (by pipeline.py run)
-               +-- 1_pos_conllu.conllu <- processed text in the UD format (by pipeline.py run)
+               +-- 1_udpipe_conllu.conllu <- processed text in the UD format (by pipeline.py run)
+
+An example ``tmp`` directory content for marks 8 and 10:
+
+.. code:: text
+
+   +-- 2023-2-level-ctlr
+       +-- tmp
+           +-- articles
+               +-- 1_raw.txt <- the paper with the ID (from scrapper.py run)
+               +-- 1_meta.json <- the paper meta-information (from scrapper.py and pipeline.py run)
+               +-- 1_cleaned.txt <- processed text with no punctuation (by pipeline.py run)
+               +-- 1_udpipe_conllu.conllu <- processed text in the UD format (by pipeline.py run)
+               +-- 1_stanza_conllu.conllu <- processed text in the UD format (by pipeline.py run)
+               +-- 1_image.png <- POS frequencies bar chart (by pipeline.py run)
 
 .. hint:: When using CI (Continuous Integration), generated
           ``processed-dataset.zip`` is available in build artifacts. Go to
@@ -78,23 +110,25 @@ Configuring pipeline
 Processing behavior must follow several steps:
 
 1. Pipeline takes a raw dataset that is collected by ``scrapper.py`` and
-   placed at ``ASSETS_PATH`` (see ``constants.py`` for a particular
+   placed at ``ASSETS_PATH`` (see ``core_utils/constants.py`` for a particular
    place).
 2. Pipeline goes through each raw file, for example ``1_raw.txt``.
-3. Pipeline processes each text, sentence, word token and extracts
+3. Pipeline processes each text via specified UD model and extracts
    linguistic information.
 4. Pipeline saves extracted information into the file with the same id
-   for each article processed, for example ``1_pos_conllu.conllu``.
+   for each article processed, for example ``1_udpipe_conllu.conllu``.
 
 Assessment criteria
 -------------------
 
 You state your ambition on the mark by editing the file
-``target_score.txt``. For example:
+``settings.json``. For example:
 
-.. code:: bash
+.. code:: json
 
-   6
+   {
+       "target_score": 6
+   }
 
 would mean that you have made tasks for mark ``6`` and request mentors
 to check if you can get it.
@@ -113,8 +147,8 @@ to check if you can get it.
          1. ``N_raw.txt`` where N is a valid number.
          2. Numbers of articles are from 1 to N without any slips.
 
-   3. Pipeline tokenizes text in each file, removes punctuation, and
-      casts it to the lower case (no *lemmatization* or *tagging*).
+   3. Pipeline cleans text in each file by removing punctuation and
+      casting it to the lower case (no *lemmatization* or *tagging*).
    4. Pipeline produces ``N_cleaned.txt`` files in the ``tmp/articles``.
 
       1. `Example raw text
@@ -127,12 +161,9 @@ to check if you can get it.
 
    1. ``pylint`` level: ``7/10``.
    2. All requirements for the mark **4**.
-   3. Pipeline uses ``pymystem3`` library to perform lemmatization and
-      POS tagging.
-   4. Pipeline should define ID, FORM, LEMMA, and POS information in the
-      resulting ``.conllu`` file.
-   5. Pipeline produces ``N_pos_conllu.conllu`` files with text tagging
-      for each article.
+   3. Pipeline uses ``spacy-udpipe`` library to extract linguistic markup for the text
+      in the CoNLL-U format.
+   4. Pipeline produces ``N_udpipe_conllu.conllu`` files for each article.
 
       1. `Example raw text
          <https://github.com/fipl-hse/2023-2-level-ctlr/blob/main/
@@ -144,50 +175,38 @@ to check if you can get it.
 
    1. ``pylint`` level: ``10/10``.
    2. All requirements for the mark **6**.
-   3. Pipeline uses ``pymystem3`` library to perform morphological tags
-      extraction (``pymystem3`` tags are represented in angle brackets).
-   4. Pipeline should define FEATS alongside ID, FORM, LEMMA, and POS
-      fields information in the resulting ``.conllu`` file.
-   5. Pipeline produces ``N_morphological_conllu.conllu`` files with
-      extended morphological information for each article, e.g. word
-      animacy.
+   3. Pipeline uses ``stanza`` library to extract linguistic markup for the text
+      in the CoNLL-U format.
+   4. Pipeline produces ``N_stanza_conllu.conllu`` files for each article.
+   5. Pipeline collects frequencies of POS in each text,
+      extends ``N_meta.json`` files with this information
+      and visualizes this distribution via bar chart saved as
+      ``N_image.png`` files for each article.
 
       1. `Example raw text
          <https://github.com/fipl-hse/2023-2-level-ctlr/blob/main/
-         lab_6_pipeline/tests/test_files/1_raw.txt>`__ and `Desired output
+         lab_6_pipeline/tests/test_files/1_raw.txt>`__, `Desired CoNLL-U output
          <https://github.com/fipl-hse/2023-2-level-ctlr/blob/main/lab_6_pipeline/
-         tests/test_files/reference_score_eight_test.conllu>`__.
+         tests/test_files/reference_score_eight_test.conllu>`__, `Example meta info
+         <https://github.com/fipl-hse/2023-2-level-ctlr/blob/main/
+         lab_6_pipeline/tests/test_files/1_meta.json>`__ and `Desired bar chart
+         <https://github.com/fipl-hse/2022-2-level-ctlr/blob/main/
+         core_utils/tests/test_files/reference_image.png>`__.
 
 4. Desired mark **10**:
 
    1. ``pylint`` level: ``10/10``.
    2. All requirements for the mark **8**.
-   3. An additional pipeline is introduced that:
+   3. Pipeline uses ``networkx`` library to create a graph of
+      dependencies to search for a required syntactic pattern.
+   4. Pipeline collects required syntactic patterns in each text and
+      extends ``N_meta.json`` files with this information.
 
-      1. Uses backup ``pymorphy2`` analyzer and backup tag converter for
-         ``NOUN`` tags processing.
-      2. Produces ``N_full_conllu.conllu`` files with extended
-         morphological information for ``NOUN`` by ``pymorphy2``.
-
-         1. `Example raw text
+      1. `Example raw text
          <https://github.com/fipl-hse/2023-2-level-ctlr/blob/main/
-         lab_6_pipeline/tests/test_files/1_raw.txt>`__ and `Desired output
-         <https://github.com/fipl-hse/2023-2-level-ctlr/blob/main/lab_6_pipeline/
-         tests/test_files/reference_score_ten_test.conllu>`__
-
-   4. An additional pipeline is introduced ``pos_frequency_pipeline.py``
-      that:
-
-      1. Collects frequencies of POS in each text.
-      2. Extends ``N_meta.json`` files with this information.
-      3. Visualizes this distribution as ``.png`` files that are created
-         for each article and saved into ``N_image.png`` files.
-
-         1. `Example meta info
-            <https://github.com/fipl-hse/2023-2-level-ctlr/blob/main/
-            lab_6_pipeline/tests/test_files/1_meta.json>`__ and `Desired output
-            <https://github.com/fipl-hse/2022-2-level-ctlr/blob/main/
-            core_utils/tests/test_files/reference_image.png>`__
+         lab_6_pipeline/tests/test_files/1_raw.txt>`__ and `Example meta info
+         <https://github.com/fipl-hse/2023-2-level-ctlr/blob/main/
+         lab_6_pipeline/tests/test_files/1_meta.json>`__.
 
 Implementation tactics
 ----------------------
@@ -208,20 +227,20 @@ Stage 0. Prerequisites
 
 -  ``scrapper.py`` implementation
 
-You will not be able to start your implementation if there is no
-``scrapper.py`` implementation.
-Make sure you implemented and passed ``scrapper.py`` assignment first.
+   You will not be able to start your implementation if there is no
+   ``scrapper.py`` implementation.
+   Make sure you implemented and passed ``scrapper.py`` assignment first.
 
 -  Ensure you only use ``pathlib`` to work with file paths
 
-As we discussed during lectures it is always better to have something
-designed specifically for the given task. Comparing ``os`` and
-``pathlib`` modules, the latter is the one that is designed for most
-file system related operations. Make sure you use only ``pathlib`` in
-the code you write.
+   As we discussed during lectures it is always better to have something
+   designed specifically for the given task. Comparing ``os`` and
+   ``pathlib`` modules, the latter is the one that is designed for most
+   file system related operations. Make sure you use only ``pathlib`` in
+   the code you write.
 
 .. important:: Do not change modules external to your code, for example
-               ``core_utils/article/article.py`` - consider them as not available
+               ``core_utils/article/article.py``, consider them as not available
                for installation. If you see a way to improve external modules,
                propose them in a separate PR - mentors will review them separately
                and give you bonuses as any improvements are appreciated.
@@ -291,8 +310,7 @@ When dataset is valid, method returns ``None``. Otherwise:
 
 2. Script immediately finishes execution.
 
-.. note:: While validating dataset, ignore files which are named not
-          using formats.
+.. note:: While validating dataset, ignore files which names do not conform to the format.
 
 Stage 1.3. Implement a method for filling files storage
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -306,8 +324,8 @@ Filling the storage should be done by executing
 .. note:: Call this method during initialization and save the results in
           ``self._storage`` attribute.
 
-.. note:: Can you explain why the name of the method starts with an
-          underscore?
+.. attention:: Can you explain why the name of the method starts with an
+               underscore?
 
 The method should contain logic for iterating over the content of the
 folder, finding all ``N_raw.txt`` files and creating
@@ -329,6 +347,12 @@ Then we put new pair to the storage:
 
    self._storage[1] = Article(url=None, article_id=1)
 
+.. note:: The :py:class:`lab_6_pipeline.pipeline.CorpusManager` knows where are the files,
+          it can easily find them by id, but it is not its responsibility
+          to perform actual file reads and writes.
+          See ``core_utils/article/io.py`` module for article
+          save/read functionality.
+
 Stage 1.4. Implement a method for retrieval of files storage
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -338,27 +362,20 @@ interface, therefore we need a special getter - a method that just
 returns a storage value. At this stage, you need to implement
 :py:meth:`lab_6_pipeline.pipeline.CorpusManager.get_articles` method.
 
-.. note:: Can you explain why we might need getters?
+.. attention:: Can you explain why we might need getters?
 
 Eventually, :py:class:`lab_6_pipeline.pipeline.CorpusManager` should return
 a dictionary of :py:class:`core_utils.article.article.Article` instances via
 :py:meth:`lab_6_pipeline.pipeline.CorpusManager.get_articles` method.
 
-.. note:: The :py:class:`lab_6_pipeline.pipeline.CorpusManager` knows where are the files,
-          it can easily find them by id, but it is not its responsibility
-          to perform actual file reads and writes.
-          See ``core_utils/article/io.py`` module for article
-          save/read functionality.
-
-Stage 2. Introduce abstraction for processing texts: ``MorphologicalAnalysisPipeline``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Stage 2. Introduce abstraction for processing texts: ``TextProcessingPipeline``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To get a mark not lower than 4, your pipeline must perform basic text
 preprocessing:
 
-1. Tokenize sentences (split into words).
-2. Lowercase each token.
-3. Remove punctuation.
+1. Lowercase text.
+2. Remove punctuation.
 
 After implementation of preprocessing, your pipeline must save results
 in the files with the names following the pattern ``N_cleaned.txt``. See
@@ -368,42 +385,11 @@ lab_6_pipeline/tests/test_files/1_raw.txt>`__ - `Desired output
 <https://github.com/fipl-hse/2023-2-level-ctlr/blob/main/
 lab_6_pipeline/tests/test_files/reference_score_four_test.txt>`__.
 
-Stage 2.1. Implement simplified logic of ``ConlluToken`` abstraction
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-You need to define abstractions responsible for managing data. We start
-with :py:class:`lab_6_pipeline.pipeline.ConlluToken` abstraction.
-It should be initialized with token string as a parameter:
-
-.. code:: python
-
-   conllu_token = ConlluToken(text='мама')
-
-The :py:class:`lab_6_pipeline.pipeline.ConlluToken` abstraction
-should implement returning lowercased original form of a token
-and removing punctuation by
-:py:meth:`lab_6_pipeline.pipeline.ConlluToken.get_cleaned` method:
-
-.. attention:: For mark 4 you are not required to fill in and implement
-               morphological parameters related methods.
-
-Stage 2.2. Implement simplified logic of ``ConlluSentence`` abstraction
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The :py:class:`lab_6_pipeline.pipeline.ConlluSentence` abstraction
-stores the representation of the sentence.
-This abstraction should define
-:py:meth:`lab_6_pipeline.pipeline.ConlluSentence.get_cleaned_sentence`
-method for getting lowercased sentence with no punctuation.
-
-.. note:: In this method it is mandatory to call
-          :py:meth:`lab_6_pipeline.pipeline.ConlluToken.get_cleaned` method.
-
-Stage 2.3. Implement simplified logic of ``MorphologicalAnalysisPipeline``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Stage 2.1. Implement simplified logic of ``TextProcessingPipeline``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 All of the above stages are necessary for implementing simplified
-:py:class:`lab_6_pipeline.pipeline.MorphologicalAnalysisPipeline` abstraction.
+:py:class:`lab_6_pipeline.pipeline.TextProcessingPipeline` abstraction.
 It takes the raw text of the article and saves the processed
 (lowercased with no punctuation) text to a file ``N_cleaned.txt``.
 The abstraction should have ``self._corpus`` attribute which represents your
@@ -413,50 +399,27 @@ It should be instantiated with the following instruction:
 
 .. code:: python
 
-   pipeline = MorphologicalAnalysisPipeline(corpus_manager)
+   pipeline = TextProcessingPipeline(corpus_manager)
 
 It is executed with a simple interface method
-:py:meth:`lab_6_pipeline.pipeline.MorphologicalAnalysisPipeline.run`
+:py:meth:`lab_6_pipeline.pipeline.TextProcessingPipeline.run`
 that you need to implement. Once executed,
-:py:meth:`lab_6_pipeline.pipeline.MorphologicalAnalysisPipeline.run`
+:py:meth:`lab_6_pipeline.pipeline.TextProcessingPipeline.run`
 iterates through the available articles taken from
 :py:class:`lab_6_pipeline.pipeline.CorpusManager`,
-reads each file, performs basic
-preprocessing and writes processed text to files.
+performs basic preprocessing and writes processed text to files.
 
 .. note:: It is mandatory to get articles with the
-          :py:meth:`lab_6_pipeline.pipeline.CorpusManager.get_articles` method
-          and to read article with the
-          :py:func:`core_utils.article.io.from_raw` function.
+          :py:meth:`lab_6_pipeline.pipeline.CorpusManager.get_articles` method.
 
-.. tip:: Try to implement
-         :py:meth:`lab_6_pipeline.pipeline.MorphologicalAnalysisPipeline.run`
-         in a way that it goes through the articles collected by
-         :py:meth:`lab_6_pipeline.pipeline.CorpusManager.get_articles`,
-         reads each of them using the :py:func:`core_utils.article.io.from_raw`
-         function, stores the sentences in the article using
-         :py:meth:`core_utils.article.article.Article.set_conllu_sentences`,
-         and then writes to the file as a processed article using the
-         :py:func:`core_utils.article.io.to_cleaned` function. At least you
-         will see that everything works to this moment and you can proceed to
-         implementing core logic of pipeline.
-
-All preprocessing logic is encapsulated in the protected
-:py:meth:`lab_6_pipeline.pipeline.MorphologicalAnalysisPipeline._process` method.
-It takes the text of the article, splits it into sentences and returns a
-list of :py:class:`lab_6_pipeline.pipeline.ConlluSentence`.
-
-.. note:: The :py:meth:`lab_6_pipeline.pipeline.MorphologicalAnalysisPipeline._process`
-          method should be called in the
-          :py:meth:`lab_6_pipeline.pipeline.MorphologicalAnalysisPipeline.run` method.
-
-Stage 2.4. Save the results of text preprocessing
+Stage 2.2. Save the results of text preprocessing
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. important:: **Stages 0-2.4** are required to get the **mark 4**.
+.. important:: **Stages 0-2.2** are required to get the **mark 4**.
 
-In order to save each article to its separate file, inspect the
-``core_utils/article/io.py`` module.
+It is mandatory to save generated text to file in the
+:py:meth:`lab_6_pipeline.pipeline.TextProcessingPipeline.run` method.
+In order to do this, inspect the ``core_utils/article/io.py`` module.
 Use :py:func:`core_utils.article.io.to_cleaned` function
 to save cleaned text to the appropriate folder. Call this
 function with the article instance you want to save text for.
@@ -464,16 +427,13 @@ function with the article instance you want to save text for.
 The function generates a file with a name ``N_cleaned.txt``, where ``N``
 is the index of your article in the ``tmp/articles`` directory.
 
-.. note:: It is mandatory to save generated text to file in the
-          :py:meth:`lab_6_pipeline.pipeline.MorphologicalAnalysisPipeline.run` method.
-
-Stage 3. Perform morphological analysis via ``MorphologicalAnalysisPipeline``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Stage 3. Extract linguistic markup using UDPipe model
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To get a mark not lower than 6, your pipeline, in addition to mark 4
 requirements, must perform morphological text analysis for each article
-using ``pymystem3`` library and save the result in the file with the
-name following the pattern ``N_pos_conllu.conllu``.
+using ``spacy-udpipe`` library and save the result in the file with the
+name following the pattern ``N_udpipe_conllu.conllu``.
 See examples for a better understanding: `Raw text
 <https://github.com/fipl-hse/2023-2-level-ctlr/blob/main/
 lab_6_pipeline/tests/test_files/1_raw.txt>`__ - `Desired output
@@ -483,560 +443,377 @@ lab_6_pipeline/tests/test_files/reference_score_six_test.conllu>`__.
 File with ``.conllu`` extension means that it corresponds to the UD
 format. Starting with the mark 6 you are required to save results of
 morphological text analysis in the UD format. For better understanding
-of the format fields see :ref:`ud-format-label`.
-
-.. note:: Specifically for mark 6 your pipeline should define ID, FORM,
-          LEMMA, and POS information in the resulting ``.conllu`` file.
+of the format fields refer to the `dedicated
+page <https://universaldependencies.org/format.html>`__.
 
 As all article text information storing and managing is done by the
 :py:class:`core_utils.article.article.Article` abstraction,
 see :ref:`ctlr-article-label` before proceeding to the next stages.
 
-Stage 3.1. Define ``MorphologicalTokenDTO`` abstraction
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The ``lab_6_pipeline.pipeline.MorphologicalTokenDTO``
-abstraction stores the following information for each token:
-
--  lemma
--  part of speech
--  morphological tags
-
-All class fields should be optional for initialisation. It means if
-there is no morphological tags information the field should be left as
-an empty string.
-
-.. note:: For mark 6 you need only lemma and POS information, so
-          ``tags`` field should be empty.
-
-Stage 3.2. Extend ``ConlluToken`` abstraction
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-After implementing the ``lab_6_pipeline.pipeline.MorphologicalTokenDTO``
-which is responsible for storing morphological information,
-you need to add this information to the
-:py:class:`lab_6_pipeline.pipeline.ConlluToken` abstraction.
-
-After that define getting and setting methods for morphological
-information:
-
-- ``lab_6_pipeline.pipeline.ConlluToken.set_morphological_parameters``
-- ``lab_6_pipeline.pipeline.ConlluToken.get_morphological_parameters``
-
-Stage 3.3. Adapt ``ConlluToken`` string representation for ``.conllu`` files
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-You also have to define
-:py:meth:`lab_6_pipeline.pipeline.ConlluToken.get_conllu_text` method
-for token’s string representation for ``.conllu`` files.
-
-In this method you have to create a string with the following features
-which must be joined with a tabulation ``\t``:
-
--  ``position``
--  ``text``
--  ``lemma`` which will be filled with lemma. You are going to do that
-   in **Stage 3.5**.
--  ``pos``
--  ``xpos`` which is filled with ``_``
--  ``feats`` which is filled with ``_`` so far. You will need it for
-   mark 8.
--  ``head`` which is filled with ``0``
--  ``deprel`` which is filled with ``root``
--  ``deps`` which is filled with ``_``
--  ``misc`` which is filled with ``_``
-
-.. note:: The last four fields will be filled certain way as the UD
-          format demands it, but these fields will not be needed in our
-          laboratory work.
-
-Stage 3.4. Extend ``ConlluSentence`` abstraction
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Also in :py:class:`lab_6_pipeline.pipeline.ConlluSentence` abstraction
-you have to create the sentence’s string representation for ``.conllu`` files.
-For this aim you need to define the following methods:
-
-- ``lab_6_pipeline.pipeline.ConlluSentence._format_tokens``
-  which formats tokens per newline;
-- :py:meth:`lab_6_pipeline.pipeline.ConlluSentence.get_conllu_text`
-  which creates the sentence’s string representation that includes:
-
-    -  ``sent_id``
-    -  ``text``
-    -  ``tokens``
-
-``sent_id`` and ``text`` should look like the following way:
-
-.. code:: python
-
-   f'# sent_id = {self._position}\n'
-   f'# text = {self._text}\n'
-
-.. note:: To write ``tokens`` you have to call
-          ``lab_6_pipeline.pipeline.ConlluSentence._format_tokens`` method.
-
-.. note:: Parameter ``include_morphological_tags`` is responsible for
-          displaying morphological tags. For implementation on mark 6 you don’t
-          need to display them.
-
-Stage 3.5. Extend ``MorphologicalAnalysisPipeline`` with morphological analysis logic
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-After implementing abstractions for storing and managing morphological
-data you need to define overall processing logic to fill abstractions
-defined with data and save processing result in the UD format. All
-processing and filling actions is the responsibility of pipeline.
-So you need to extend
-:py:class:`lab_6_pipeline.pipeline.MorphologicalAnalysisPipeline` pipeline.
-
-For mark 6, apart from tokenization, punctuation removal and casting to
-lowercase, you must implement the following processing:
-
-1. Setting token id (that is ``ID`` field in the UD-formatted file).
-2. Setting token text (that is ``FORM`` field in the UD-formatted file).
-3. Lemmatization (that is ``LEMMA`` field in the UD-formatted file).
-4. POS tagging (that is ``POS`` field in the UD-formatted file).
-
-.. note:: For more information about these fields see :ref:`ud-format-label`.
-
-Stage 3.6. Extracting base morphological information
+Stage 3.1. Introduce ``UDPipeAnalyzer`` abstraction
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The :py:class:`lab_6_pipeline.pipeline.MorphologicalAnalysisPipeline`
-is executed with the same interface method
-:py:meth:`lab_6_pipeline.pipeline.MorphologicalAnalysisPipeline.run`
-as described during previous stages. The only
-difference is inside processing logic. Once executed:
+Given that the present laboratory work implements text processing via more than one
+linguistic model (UDPipe and Stanza), there is a need for unified interface. For this
+reason, you are required to implement a wrapper abstraction over UDPipe model:
+:py:class:`lab_6_pipeline.pipeline.UDPipeAnalyzer`. This abstraction is responsible
+for processing text and outputting its linguistic features in CoNLL-U format.
 
--  pipeline goes over each :py:class:`core_utils.article.article.Article`
-   instance and gets raw text:
+Notice that this class inherits from
+``LibraryWrapper``, which defines a specific set of methods to be present
+across all wrappers: ``_bootstrap``, ``analyze``, ``to_conllu``,
+as well as ``self._analyzer`` attribute.
+In the following sections each field will be explained.
 
-   -  for each sentence in raw text pipeline fills
-      :py:class:`lab_6_pipeline.pipeline.ConlluSentence`;
-   -  for each token in the sentence pipeline fills
-      :py:class:`lab_6_pipeline.pipeline.ConlluToken`;
-   -  for each :py:class:`lab_6_pipeline.pipeline.ConlluToken` instance pipeline fills
-      ``lab_6_pipeline.pipeline.MorphologicalTokenDTO``;
-   -  to get morphological information for
-      ``lab_6_pipeline.pipeline.MorphologicalTokenDTO``
-      pipeline uses ``pymystem3`` library.
-
--  pipeline sets :py:class:`core_utils.article.article.Article`
-   conllu sentences field using
-   :py:meth:`core_utils.article.article.Article.set_conllu_sentences` method;
--  pipeline saves processing result using
-   :py:func:`core_utils.article.io.to_conllu` function.
-
-To extract lemma and POS information you need to use ``pymystem3``
-library.
-
-.. note:: It is recommended to rely on ``pymystem3`` ability to process
-          text as a whole and perform tokenization, lemmatization and
-          morphological analysis at once. There are several reasons to do that,
-          but from the linguistic perspective it would be interesting for you
-          to remember that context-aware lemmatization works better than
-          lemmatization of each word separately.
-
-Use the following way to analyze the text:
+First, the wrapper should be instantiated with the following instruction:
 
 .. code:: python
 
-   result = Mystem().analyze(text)
+   udpipe_analyzer = UDPipeAnalyzer()
 
-Here, ``text`` is the text that you want to process, e.g. raw text of
-the article, and ``result`` is the result of morphological analysis.
-Inspect the ``result`` as you need. It stores all information required
-for the assignment.
+Wrapper does not accept any arguments during initialization, but calls protected method
+:py:meth:`lab_6_pipeline.pipeline.UDPipeAnalyzer._bootstrap`, which is responsible for
+loading and setting up the UDPipe model.
 
-.. note:: Use ``debug`` or ``print`` to inspect the content of ``result``
-          - you will find everything you need there.
+.. hint:: Path to the required UDPipe model is stored in
+          ``core_utils/constants.py`` module as ``UDPIPE_MODEL_PATH``.
 
-.. hint:: ``result['text']`` is likely to have the original word. Use the
-          same approach to find POS information and normalized form.
+The :py:meth:`lab_6_pipeline.pipeline.UDPipeAnalyzer._bootstrap` method must read the UDPipe
+model via ``spacy_udpipe`` library, add CoNLL-U formatter to the model pipeline and define
+specific configurations for the model.
 
-Keep in mind that all processing logic is encapsulated in the protected
-:py:meth:`lab_6_pipeline.pipeline.MorphologicalAnalysisPipeline._process`
-pipeline method as described previously.
+.. tip:: Refer to the corresponding seminar materials
+         or inspect `the official repository of the library
+         <https://github.com/TakeLab/spacy-udpipe/blob/master/README.md>`__
+         to learn more about appropriate configuration details.
 
-.. note:: The only punctuation mark used in resulting ``.conllu`` files
-          is a dot at the end of the sentence. Make sure you remove or ignore
-          other punctuation marks.
+Finally, :py:meth:`lab_6_pipeline.pipeline.UDPipeAnalyzer._bootstrap`
+returns the resulting model, which is further stored in the protected
+``self._analyzer`` attribute of
+:py:class:`lab_6_pipeline.pipeline.UDPipeAnalyzer` instance.
 
-.. note:: Since conversion to UD requires us to provide POS tag to every
-          entity and ``pymystem3`` and ``pymorphy2`` do not give any tag to
-          numbers and punctuation, you need to identify such tokens as numbers
-          and punctuation and map them to appropriate UD tags: ``PUNCT`` and ``NUM``.
+.. note:: Naturally, methods of ``spacy-udpipe`` module return an instance of
+          its own abstraction ``Language``, not the instance of ``AbstractCoNLLUAnalyzer``,
+          as specified in the typing annotation of
+          :py:meth:`lab_6_pipeline.pipeline.UDPipeAnalyzer._bootstrap`.
+          However, given that the laboratory work covers more than one language analyzer,
+          it is necessary to unite all the different types of analyzer instances used.
+          For this exact reason class ``AbstractCoNLLUAnalyzer`` is defined: it does not
+          impose a special interface, as protocols of pipeline and library wrappers do,
+          but simply indicates that this object is responsible for analyzing the language
+          material. As for the interface of the analyzer object, it is responsibility
+          of corresponding library wrapper to handle it.
 
-Stage 3.7. Implement ``MystemTagConverter`` abstraction
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Stage 3.2. Process text via ``UDPipeAnalyzer`` abstraction
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When you get word POS info, it is not presented in an appropriate
-format. You need to convert it into the UD format. For more information
-about the UD format and tag conversion see :ref:`ud-format-label`.
+Next, you are required to implement
+:py:meth:`lab_6_pipeline.pipeline.UDPipeAnalyzer.analyze` method.
+It is a public method used to process texts into CoNLL-U formatted markup.
+The method accepts a list of strings and produces a list of strings.
 
-The :py:class:`core_utils.article.ud.TagConverter` abstraction
-is responsible for tags conversion between different formats.
-You need to inherit interface given and implement the following
-abstraction inside the ``pipeline.py`` file:
+This method uses ``self._analyzer`` attribute, which encloses the UDPipe model,
+to retrieve linguistic features of the text in a required format.
 
-.. code:: py
+.. tip:: To learn more about the UDPipe model interface,
+         refer to the corresponding seminar materials or inspect
+         `the official repository of the library
+         <https://github.com/TakeLab/spacy-udpipe/blob/master/README.md>`__.
 
-   class MystemTagConverter(TagConverter):
-       pass
+Stage 3.3. Save linguistic markup via ``UDPipeAnalyzer`` abstraction
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``lab_6_pipeline.pipeline.MystemTagConverter`` instance
-should be initialised with path to the tag mappings file,
-e.g. information about the correspondence of one
-format tags to another format tags. You need to define tag mappings in
-the JSON format under the ``lab_6_pipeline/data`` directory. Again, see
-:ref:`ud-format-label` and :ref:`ud-mapping-label` for more information on
-the UD format and its mapping with other formats.
+Finally, :py:class:`lab_6_pipeline.pipeline.UDPipeAnalyzer` abstraction
+must possess a method for producing a file with ``.conllu`` extension with
+retrieved linguistic markup.
+Method :py:meth:`lab_6_pipeline.pipeline.UDPipeAnalyzer.to_conllu` does not perform
+any analysis, but operates fields of
+:py:class:`core_utils.article.article.Article` instance.
 
-.. note:: JSON file with ``pymystem3`` tag mappings should be named
-          ``mystem_tags_mapping.json``.
+The method accepts one instance of :py:class:`core_utils.article.article.Article`
+as an argument. It is presumed that the given article object
+has a filled attribute with CoNLL-U markup. The method thus uses interface of
+the :py:class:`core_utils.article.article.Article` instance to save the stored
+information into the ``N_udpipe_conllu.conllu`` file,
+where ``N`` corresponds to the identifier of the article.
 
-After initialising the ``lab_6_pipeline.pipeline.MystemTagConverter``
-instance, it should extract mapping information from the file provided inside its
-constructor. All mapping information should be filled into the class
-attribute field.
+.. note:: It is mandatory to use
+          :py:meth:`core_utils.article.article.Article.get_file_path`
+          and
+          :py:meth:`core_utils.article.article.Article.get_conllu_info`
+          methods.
 
-Specifically for mark 6 you need to convert POS information from
-``pymystem3`` format into the UD format. For example, ``pymystem3``
-analysis result string ``A=им,ед,полн,жен`` should be converted into
-``ADJ`` UD POS tag. To do this implement
-``lab_6_pipeline.pipeline.MystemTagConverter.convert_pos`` method.
-It extracts POS tag from ``pymystem3`` analysis string and converts
-it into the UD format.
-
-.. note:: Make sure you convert ``pymystem3`` POS tag right after getting
-          it as a result of text analysis.
-          The ``lab_6_pipeline.pipeline.MorphologicalTokenDTO`` instance
-          ``pos`` field should be filled with the UD formatted POS tag.
-          The ``lab_6_pipeline.pipeline.MystemTagConverter`` instance
-          should be initialised as a field of
-          :py:class:`lab_6_pipeline.pipeline.MorphologicalAnalysisPipeline`.
-
-Stage 3.8. Save the results of text POS tagging
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. important:: **Stages 0-3.8** are required to get the **mark 6**.
-
-In order to save each article to its separate file, inspect the
-``core_utils/article/io.py`` module. Use
-:py:func:`core_utils.article.io.to_conllu` function to save the result
-of text POS tagging to the appropriate folder.
-Call this function with the article instance you want to save text for.
-
-.. attention:: ``include_morphological_tags`` and ``include_pymorphy_tags``
-               parameters should be ``False``.
-
-The function generates a file with a name ``N_pos_conllu.conllu``, where
-``N`` is the index of your article in the ``tmp/articles`` directory.
-
-.. note:: It is mandatory to save generated text to file in the
-          :py:meth:`lab_6_pipeline.pipeline.MorphologicalAnalysisPipeline.run`
-          method.
-
-Stage 4. Deepen morphological analysis with ``MorphologicalAnalysisPipeline``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-To get a mark not lower than 8, your
-:py:class:`lab_6_pipeline.pipeline.MorphologicalAnalysisPipeline`
-should also produce files with extended morphological information for
-each article, e.g. word animacy, and save the result in the file with
-the name following the pattern ``N_morphological_conllu.conllu``.
-See examples for a better understanding: `Raw text
-<https://github.com/fipl-hse/2022-2-level-ctlr/blob/main/
-lab_6_pipeline/tests/test_files/1_raw.txt>`__ - `Desired output
-<https://github.com/fipl-hse/2022-2-level-ctlr/blob/main/
-lab_6_pipeline/tests/test_files/reference_score_eight_test.conllu>`__.
-
-.. note:: For mark 8 your pipeline should fill FEATS alongside ID, FORM,
-          LEMMA, and POS fields information in the resulting ``.conllu`` file.
-
-Stage 4.1. Extend logic of ``MorphologicalAnalysisPipeline`` with additional analysis
+Stage 3.4. Extend ``TextProcessingPipeline`` with morphological analysis logic
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-As you already know, ``pymystem3`` library allows you to get
-morphological analysis for a particular word. During previous stages you
-extracted only lemma and POS tag from ``pymystem3`` analysis. For
-example, analyzing word ``красивая`` you have got a lemmatized version -
-``красивый`` - and its POS tag - ``A`` which you subsequently have
-converted into the UD format.
+.. important:: **Stages 0-3.4** are required to get the **mark 6**.
 
-For mark 8 you need to implement deeper morphological analysis with
-``pymystem3`` library by obtaining the morphological features of the
-word. For example, when analysing word ``красивая``, ``pymystem3`` gives
-the following result: ``A=им,ед,полн,жен``. You need to take
-``им,ед,полн,жен`` tags, convert them into the UD-formatted string and
-save alongside other morphological information in the UD format (that is
-``FEATS`` field in the UD-formatted file).
+After implementing abstraction for linguistic
+data retrieval you need to define overall processing logic to fill article instances
+with markup and save processing result in the UD format. All
+processing and filling actions is the responsibility of pipeline.
+So you need to extend
+:py:class:`lab_6_pipeline.pipeline.TextProcessingPipeline`.
 
-.. note:: It is still
-          :py:meth:`lab_6_pipeline.pipeline.MorphologicalAnalysisPipeline._process`
-          method that contains all the processing logic,
-          including additional analysis done with ``pymystem3``.
+For mark 6, apart from punctuation removal and casting to
+lowercase, you must implement the extraction of all information required by
+UD format and save it in the corresponding ``.conllu`` files. In other words,
+the execution of the
+:py:meth:`lab_6_pipeline.pipeline.TextProcessingPipeline.run` method
+must result in producing both ``N_cleaned.txt`` and ``N_udpipe_conllu.conllu`` files
+for each available article.
 
-.. note:: ``pos``, ``lemma``, ``tags`` fields of
-          ``lab_6_pipeline.pipeline.MorphologicalTokenDTO``
-          abstraction should be initialized during
-          processing with word morphological features converted into the UD
-          format. The ``tags`` field is used later to fill the ``FEATS`` field
-          in the UD-formatted file.
+In order to achieve that, first, make sure that during the instantiation of the pipeline
+an instance of :py:class:`lab_6_pipeline.pipeline.UDPipeAnalyzer` model is accepted
+as an argument and saved to the ``_analyzer`` protected attribute.
 
-Stage 4.2. Extend mapping information and ``MystemTagConverter`` conversion logic
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Then, during the execution of
+:py:meth:`lab_6_pipeline.pipeline.TextProcessingPipeline.run` method,
+apart from cleaning of each article perform the following:
 
-First of all, you need to extend JSON file with mapping information, as
-now you are working with additional morphological attributes. Think
-about ``pymystem3`` and UD format attributes correspondence and create
-mappings accordingly.
+1. Extract ConLLU formatted markup of the text via analyzer.
+2. Store the extracted markup in a corresponding field of article instance.
+3. Save the stored markup to ``.conllu`` file via analyzer interface.
 
-As you now retrieve extended morphological information you need to
-extend the ``lab_6_pipeline.pipeline.MystemTagConverter``
-abstraction with
-``lab_6_pipeline.pipeline.MystemTagConverter.convert_morphological_tags``
-method. It takes ``pymystem3`` word attributes string, extracts all
-morphological features and converts them in the UD format according to
-mapping information. For example ``pymystem3`` word attributes string
-``A=им,ед,полн,жен`` should be converted into the
-``Case=Nom|Gender=Fem|Number=Sing`` string according to UD format.
+.. note:: It is mandatory to use
+          :py:meth:`core_utils.article.io.from_raw`,
+          :py:meth:`lab_6_pipeline.pipeline.UDPipeAnalyzer.analyze`,
+          :py:meth:`core_utils.article.article.Article.set_conllu_info` and
+          :py:meth:`lab_6_pipeline.pipeline.UDPipeAnalyzer.to_conllu` methods.
 
-.. note:: To have a better understanding of conversion logic
-          see :ref:`ud-format-label`.
+Stage 4. Extract linguistic markup using Stanza model
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Stage 4.3. Save the results of text double-tagging
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+For a mark higher than 6, you are required to be able to perform text processing
+via both UDPipe and Stanza linguistic models.
+See examples for a better understanding: `Raw text
+<https://github.com/fipl-hse/2023-2-level-ctlr/blob/main/
+lab_6_pipeline/tests/test_files/1_raw.txt>`__ - `Desired output
+<https://github.com/fipl-hse/2023-2-level-ctlr/blob/main/
+lab_6_pipeline/tests/test_files/reference_score_eight_test.conllu>`__.
 
-.. important:: **Stages 0-4.3** are required to get the **mark 8**.
+Stage 4.1. Introduce ``StanzaAnalyzer`` abstraction
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In order to save each article to its separate
-``N_morphological_conllu.conllu`` file, call
-:py:func:`core_utils.article.io.to_conllu` function
-with each of your articles instances as parameter.
+Implement
+:py:class:`lab_6_pipeline.pipeline.StanzaAnalyzer` abstraction.
+It is a wrapper over a Stanza model. Similarly, its responsibility
+is processing text and outputting its linguistic features in CoNLL-U format.
 
-.. attention:: The ``include_morphological_tags`` parameter should be ``True``
-               and the ``include_pymorphy_tags`` parameter should be ``False``.
-               Moreover, if ``include_morphological_tags`` parameter of
-               :py:meth:`lab_6_pipeline.pipeline.ConlluToken.get_conllu_text`
-               method is ``False``, you will not save morphological tags.
+Notice that this wrapper inherits from ``LibraryWrapper`` protocol,
+which means that its interface is dictated by the protocol and identical to that of
+:py:class:`lab_6_pipeline.pipeline.UDPipeAnalyzer` abstraction.
+In other words, :py:class:`lab_6_pipeline.pipeline.StanzaAnalyzer` and
+:py:class:`lab_6_pipeline.pipeline.UDPipeAnalyzer` have the same function and
+interface, meaning that they can be used interchangeably, but their inner workings
+are different as they are based on separate models. Thus, the resulting processing
+may also vary.
 
-.. note:: It is mandatory to save generated text to file in the
-          :py:meth:`lab_6_pipeline.pipeline.MorphologicalAnalysisPipeline.run`
-          method.
+The :py:class:`lab_6_pipeline.pipeline.StanzaAnalyzer`
+wrapper should be instantiated with the following instruction:
 
-Stage 5. Improve morphological analysis performance and visualise statistics
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code:: python
 
-For mark 10 you need to refine the logic of the existing
-:py:class:`lab_6_pipeline.pipeline.MorphologicalAnalysisPipeline`
-pipeline by making a more flexible
-``lab_6_pipeline.pipeline.AdvancedMorphologicalAnalysisPipeline``
-version. Mark 10 implies not just extracting information from text,
-but also statistical processing and visualization of the resulting information.
-For this purpose you are going to introduce
-:py:class:`lab_6_pipeline.pos_frequency_pipeline.POSFrequencyPipeline`.
-Let us start with improving morphological pipeline processing logic.
+   udpipe_analyzer = StanzaAnalyzer()
 
-Stage 5.1. Introduce additional ``pymorphy2`` backup analyzer
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Wrapper does not accept any arguments during initialization, but calls protected method
+:py:meth:`lab_6_pipeline.pipeline.StanzaAnalyzer._bootstrap`, which is responsible for
+downloading and initializing the Stanza model.
 
-You have used ``pymystem3`` analyzer before, and you may have noticed
-that the analyzer provides quite accurate analysis of tokens in some
-places, but in other places the analyzer is inferior and does not always
-give correct analysis, for example equating ``VERB`` with ``ADV``. In
-fact, there are various analyzer libraries providing functions for text
-analysis. Some analyzers handle certain tasks better than others and
-vice versa.
+The :py:meth:`lab_6_pipeline.pipeline.StanzaAnalyzer._bootstrap` method must
+download via ``stanza`` library a model for the Russian language with the following
+functionality:
 
-You need to make your pipeline more flexible and add a secondary
-additional backup analyzer ``pymorphy2``, which will handle only
-``NOUN`` tokens. The other parts of speech will be handled using
-``pymystem3`` as before.
+   -  tokenization
+   -  lemmatization
+   -  part of speech extraction
+   -  dependency parsing
 
-This way, by adding the possibility to use several analyzers, you can
-improve the performance of the program, using all the best features of
-each analyzer.
+The method then initializes an instance of Stanza model and returns it.
+The model returned is further stored in the protected ``self._analyzer`` attribute of
+:py:class:`lab_6_pipeline.pipeline.StanzaAnalyzer` instance.
 
-Stage 5.2. Introduce ``OpenCorporaTagConverter`` abstraction for ``pymorphy2`` tags
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. tip:: Refer to the corresponding seminar materials
+         or inspect `the official repository of the library
+         <https://stanfordnlp.github.io/stanza/>`__.
+         to learn more about ``stanza`` interface details.
 
-Before adding ``pymorphy2`` analyzer support, it is necessary to define
-a converter which will convert the ``pymorphy2`` tags into the UD format
-we are working with.
-The ``lab_6_pipeline.pipeline.OpenCorporaTagConverter``
-class should inherit :py:class:`core_utils.article.ud.TagConverter`
-and use its methods.
+Stage 4.2. Process text via ``StanzaAnalyzer`` abstraction
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``lab_6_pipeline.pipeline.OpenCorporaTagConverter`` instance
-should be initialised with path to the tag mappings file.
-You need to define tag mappings in the JSON
-format under the ``lab_6_pipeline/data`` directory. Again, see
-:ref:`ud-format-label` and :ref:`ud-mapping-label` for more information
-on the UD format and its mapping with other formats.
+Next, you are required to implement
+:py:meth:`lab_6_pipeline.pipeline.StanzaAnalyzer.analyze` method.
+It is a public method used to process texts into CoNLL-U formatted markup.
+The method accepts a list of strings and produces a list of
+``StanzaDocument`` instances.
 
-.. note:: JSON file with ``pymorphy2`` tag mappings should be named
-          ``opencorpora_tags_mapping.json``.
+This method uses ``self._analyzer`` attribute, which encloses the Stanza model,
+to retrieve linguistic features of the text.
 
-Implement ``lab_6_pipeline.pipeline.OpenCorporaTagConverter.convert_pos`` and
-``lab_6_pipeline.pipeline.OpenCorporaTagConverter.convert_morphological_tags``
-methods.
+.. tip:: To learn more about the Stanza model interface,
+         refer to the corresponding seminar materials or inspect
+         `the official repository of the library
+         <https://stanfordnlp.github.io/stanza>`__.
 
-.. note:: Both methods require special ``tags`` parameter of the
-          :py:class:`core_utils.article.ud.OpencorporaTagProtocol` type.
-          When you analyse each token using
-          ``pymorphy2`` you get the result of analysis as the
-          :py:class:`core_utils.article.ud.OpencorporaTagProtocol` token instance.
-          Inspect this object to get all morphological information required.
+Stage 4.3. Save linguistic markup via ``StanzaAnalyzer`` abstraction
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. note:: As we handle only ``NOUN`` tokens you have to parse ``gender``,
-          ``number``, ``animacy`` and ``case`` tags in
-          ``lab_6_pipeline.pipeline.OpenCorporaTagConverter.convert_morphological_tags``
-          method.
+Finally, :py:class:`lab_6_pipeline.pipeline.StanzaAnalyzer` abstraction
+must possess a method for producing a file with ``.conllu`` extension with
+retrieved linguistic markup.
+Method :py:meth:`lab_6_pipeline.pipeline.StanzaAnalyzer.to_conllu` does not perform
+any analysis but operates fields of
+:py:class:`core_utils.article.article.Article`
+instance along with functions from ``stanza.utils.conll``.
 
-Stage 5.3. Introduce ``AdvancedMorphologicalAnalysisPipeline`` with backup analyzer
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. tip:: To learn more about the Stanza library interface,
+         refer to the corresponding seminar materials or inspect
+         `the official repository of the library
+         <https://stanfordnlp.github.io/stanza>`__.
 
-When you are done defining ``pymorphy2`` into UD format mappings and
-relevant converter, it is right time to implement the
-``lab_6_pipeline.pipeline.AdvancedMorphologicalAnalysisPipeline``
-class with ``pymorphy2`` as backup analyser and
-``lab_6_pipeline.pipeline.OpenCorporaTagConverter``
-as backup converter.
+The method accepts
+one instance of :py:class:`core_utils.article.article.Article` as an argument. It is
+presumed that the given article object has a filled attribute with CoNLL-U markup.
+The method thus uses interface of the :py:class:`core_utils.article.article.Article`
+instance to save the stored UD information into the ``N_stanza_conllu.conllu`` file,
+where ``N`` corresponds to the identifier of the article.
 
-You need to redefine
-``lab_6_pipeline.pipeline.AdvancedMorphologicalAnalysisPipeline._process``
-method as you are inheriting from the
-:py:class:`lab_6_pipeline.pipeline.MorphologicalAnalysisPipeline` class.
+.. tip:: It is mandatory to use
+         :py:meth:`core_utils.article.article.Article.get_file_path`
+         and
+         :py:meth:`core_utils.article.article.Article.get_conllu_info`
+         methods.
 
-.. note:: You also need to specify own initializer of this class to
-          create two more attributes alongside with parent’s attributes:
-          ``pymorphy2`` as the ``self._backup_analyzer`` attribute and
-          ``lab_6_pipeline.pipeline.OpenCorporaTagConverter`` as the
-          ``self._backup_tag_converter`` attribute. Keep in mind that both fields
-          are to be used only when you are working with ``NOUN`` tokens inside the
-          ``lab_6_pipeline.pipeline.AdvancedMorphologicalAnalysisPipeline._process``
-          pipeline method.
+Stage 4.4. Ensure compatibility of ``TextProcessingPipeline`` with ``StanzaAnalyzer``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. note:: ``pymystem3`` may define some words as NOUN, but when you use
-          backup ``pymorphy2`` analyzer it may define the same words as not
-          NOUN and even provide no analysis at all. In this case you should
-          still use the result of backup ``pymorphy2`` analyzer.
+Since both :py:class:`lab_6_pipeline.pipeline.StanzaAnalyzer`
+and :py:class:`lab_6_pipeline.pipeline.UDPipeAnalyzer` derive from the same interface
+protocol and carry the same functionality, there is no need to adjust
+:py:class:`lab_6_pipeline.pipeline.TextProcessingPipeline` logic to working with
+Stanza wrapper. Perform a self-check by ensuring that your code works accordingly to
+the following examples.
 
-Stage 5.4. Save the results of ``AdvancedMorphologicalAnalysisPipeline``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This code snippet must produce ``N_cleaned.txt`` and ``N_stanza_conllu.conllu``
+files for each available article:
 
-You will need to redefine
-``lab_6_pipeline.pipeline.AdvancedMorphologicalAnalysisPipeline.run``
-method as you are inheriting from
-the :py:class:`lab_6_pipeline.pipeline.MorphologicalAnalysisPipeline`
-class and need to call :py:func:`core_utils.article.io.to_conllu`
-function with different parameters to save result to the appropriate folder.
-Call this function with the article instance you want to save text for.
+.. code:: python
 
-.. attention:: ``include_morphological_tags`` and ``include_pymorphy_tags``
-               parameters should be ``True``.
+    corpus_manager = CorpusManager(path_to_raw_txt_data=ASSETS_PATH)
+    stanza_analyzer = StanzaAnalyzer()
+    pipeline = TextProcessingPipeline(corpus_manager, stanza_analyzer)
+    pipeline.run()
 
-The function generates a file with a name ``N_full_conllu.conllu``,
-where ``N`` is the index of your article in the ``tmp/articles``
-directory.
+This code snippet must produce ``N_cleaned.txt`` and ``N_udpipe_conllu.conllu``
+files for each available article:
 
-.. note:: It is mandatory to save generated text to file in the
-          ``lab_6_pipeline.pipeline.AdvancedMorphologicalAnalysisPipeline.run``
-          method.
+.. code:: python
 
-Stage 6. Implement analytical pipeline ``POSFrequencyPipeline`` for statistics collection
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    corpus_manager = CorpusManager(path_to_raw_txt_data=ASSETS_PATH)
+    udpipe_analyzer = UDPipeAnalyzer()
+    pipeline = TextProcessingPipeline(corpus_manager, udpipe_analyzer)
+    pipeline.run()
 
-We have just made several text processing pipelines with base and
-advanced processing logic. However, this is only the beginning of your
-linguistic research: you have the data and now need to start analyzing
-it, gaining insights, understanding it and finding hidden meanings.
-During this stage we will make a small pipeline that will compute
+Finally, this code snippet must produce just the ``N_cleaned.txt``
+files for each available article, with no ``.conllu`` files:
+
+.. code:: python
+
+    corpus_manager = CorpusManager(path_to_raw_txt_data=ASSETS_PATH)
+    pipeline = TextProcessingPipeline(corpus_manager)
+    pipeline.run()
+
+If you encounter errors from using
+:py:class:`lab_6_pipeline.pipeline.TextProcessingPipeline`
+with :py:class:`lab_6_pipeline.pipeline.StanzaAnalyzer`, then you must have made a mistake
+during either implementation of the model wrapper or markup extraction during pipeline
+execution.
+
+.. note:: All model wrappers must have identical interface, specified by
+          ``LibraryWrapper``, and processing pipeline must only rely on that interface.
+          Pipeline must not rely on any library specific attributes or methods.
+
+Stage 5. Extract and visualize POS frequency statistics
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We have just finished implementation of text processing pipeline.
+However, this is just the beginning of your
+linguistic research: you have the data and now it is time to start analyzing
+it, gaining insights, achieving a better understanding and finding hidden meanings.
+During this stage we will make a pipeline that will compute
 distribution of various parts of speech in our texts, visualize it and,
-maybe, it will give better understanding of the text.
+maybe, provide us with better understanding of the text.
 
 This is a sample result we are going to obtain:
 
 .. figure:: ../docs/images/sample_visualization.png
    :alt: sample_visualization.png
 
-Stage 6.1. Introduce ``POSFrequencyPipeline`` abstraction
+.. warning:: Starting from the current stage, you are expected to work with files and
+             classes related to ``stanza`` library only. Do not parse and process CONLL-U
+             files by means of ``spacy-udpipe``.
+
+Stage 5.1 Extend ``StanzaAnalyzer`` with CoNLL-U parsing functionality
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In order to process information stored in the ``.conllu`` files,
+you are required to implement a
+:py:meth:`lab_6_pipeline.pipeline.StanzaAnalyzer.from_conllu` method.
+
+Its responsibility is the opposite of that of
+:py:meth:`lab_6_pipeline.pipeline.StanzaAnalyzer.to_conllu` method: it
+accepts article instance, derives the name of the file where its UD properties are stored,
+and converts its contents to the ``StanzaDocument`` via ``stanza.utils.conll``.
+
+.. tip:: To learn more about the Stanza library interface,
+         refer to the corresponding seminar materials or inspect
+         `the official repository of the library
+         <https://stanfordnlp.github.io/stanza>`__.
+
+Stage 5.2. Introduce ``POSFrequencyPipeline`` abstraction
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Now we are going to work with the ``pos_frequency_pipeline.py`` file and with
-the :py:class:`lab_6_pipeline.pos_frequency_pipeline.POSFrequencyPipeline` class.
-All code should be written in the
-:py:func:`lab_6_pipeline.pos_frequency_pipeline.main` function.
-The :py:class:`lab_6_pipeline.pos_frequency_pipeline.POSFrequencyPipeline`
+Now we are going to work with
+the :py:class:`lab_6_pipeline.pipeline.POSFrequencyPipeline` class.
+The :py:class:`lab_6_pipeline.pipeline.POSFrequencyPipeline`
 is instantiated in the similar manner as the
-:py:class:`lab_6_pipeline.pipeline.MorphologicalAnalysisPipeline` or
-``lab_6_pipeline.pipeline.AdvancedMorphologicalAnalysisPipeline``:
+:py:class:`lab_6_pipeline.pipeline.TextProcessingPipeline`.
+During initialization it must accept an instance of ``CorpusManager``
+and an instance of ``StanzaAnalyzer``.
 
 .. code:: python
 
    corpus_manager = CorpusManager(...)
-   ...
-   pipeline = POSFrequencyPipeline(corpus_manager=corpus_manager)
+   stanza_analyzer = StanzaAnalyzer()
+   visualizer = POSFrequencyPipeline(corpus_manager, stanza_analyzer)
 
-Stage 6.2. Extending ``ConlluSentence`` to support calculating POS frequencies
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+During instantiation, provided instances of ``CorpusManager`` and ``StanzaAnalyzer``
+are stored in the ``self._corpus``, ``self._analyzer`` attributes.
 
-Since you are going to calculate POS frequencies of the tokens, you will
-need to get access to ``ConlluTokens`` in ``ConlluSentences``.
-In order to do that, implement the
-:py:meth:`lab_6_pipeline.pipeline.ConlluSentence.get_tokens` method.
-
-Stage 6.3. Introduce functionality for parsing UD-formatted files
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-In order to work with ``.conllu`` files which have already been written
-(e.g. ``N_full_conllu.conllu``), you need not only be able to open those
-files, but also to represent information from them using abstractions
-you have previously written that are responsible for representing
-information from ``.conllu`` files in your program. That is for example,
-:py:class:`core_utils.article.article.Article` abstraction.
-
-You need to implement :py:func:`lab_6_pipeline.pos_frequency_pipeline.from_conllu`
-function that reads the information from
-the ``.conllu`` file into the program and populates the
-:py:class:`core_utils.article.article.Article`
-abstraction with all information from the source file.
-
-The function takes path to the article requested and optionally an
-instance of :py:class:`core_utils.article.article.Article`.
-Function reads and extracts all ``.conllu`` processing information
-from relevant file and fills new
-:py:class:`core_utils.article.article.Article` instance,
-if no instance provided, or fills
-:py:class:`core_utils.article.article.Article` instance
-provided within the ``article`` param.
-
-.. hint:: Inspect ``core_utils/article/ud.py`` module for service
-          functionality that can be helpful in current task, especially
-          :py:func:`core_utils.article.ud.extract_sentences_from_raw_conllu` function.
-
-Stage 6.4. Implement core logic of ``POSFrequencyPipeline``
+Stage 5.3. Implement core logic of ``POSFrequencyPipeline``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. important:: **Stages 0-6.4** are required to get the **mark 10**.
+.. important:: **Stages 0-5.3** are required to get the **mark 8**.
 
-The :py:class:`lab_6_pipeline.pos_frequency_pipeline.POSFrequencyPipeline`
+The :py:class:`lab_6_pipeline.pipeline.POSFrequencyPipeline`
 is executed with the same interface method
-:py:meth:`lab_6_pipeline.pos_frequency_pipeline.POSFrequencyPipeline.run`
+:py:meth:`lab_6_pipeline.pipeline.POSFrequencyPipeline.run`
 that you need to implement.
 
 Once executed,
-:py:meth:`lab_6_pipeline.pos_frequency_pipeline.POSFrequencyPipeline.run`:
+:py:meth:`lab_6_pipeline.pipeline.POSFrequencyPipeline.run`:
 
 1. Iterates through the available articles taken from
    :py:class:`lab_6_pipeline.pipeline.CorpusManager`.
-2. Reads each file (any ``.conllu`` file type can be read, as each has POS info).
-3. Calculates frequencies of each part of speech.
-4. Writes them to the meta file.
-5. Visualizes frequencies in a form of images with names following this
-   convention: ``N_image.png``.
+2. Retrieves UD information for each article via ``StanzaAnalyzer`` interface
+   (notice any ``.conllu`` file type can be used, as each has POS info).
+3. Calculates frequencies of each part of speech via protected method
+   :py:meth:`lab_6_pipeline.pipeline.POSFrequencyPipeline._count_frequencies`, which
+   accepts article instance and returns the dictionary
+   in the format ``{<POS>: <number of occurrences>}``.
+4. Writes them to the meta file via ``Article`` instance interface.
+5. Visualizes frequencies in a form of images with names following
+   convention ``N_image.png``.
 
 .. note:: It is mandatory to get articles with the
           :py:meth:`lab_6_pipeline.pipeline.CorpusManager.get_articles` method.
@@ -1046,14 +823,11 @@ Once executed,
           :py:func:`core_utils.article.io.to_meta`,
           :py:func:`core_utils.article.io.from_meta` functions.
 
-.. note:: You have to create ``EmptyFileError`` exception class and to
-          raise it when an article file is empty.
+.. attention:: You have to create ``EmptyFileError`` exception class and to
+               raise it when an article file is empty.
 
-.. note:: Make sure that resulting meta files are valid: they must
-          contain no more than one dictionary-line object.
-
-.. hint:: To speedup ``pymystem3`` for processing large texts you should
-          delete all line breaks. You can do it with regular expressions.
+.. attention:: Make sure that resulting meta files are valid: they must
+               contain no more than one dictionary-like object.
 
 For visualization, you need to use :py:func:`core_utils.visualizer.visualize`
 function.
@@ -1063,3 +837,197 @@ Sample usage:
 .. code:: python
 
    visualize(article=article, path_to_save=ASSETS_PATH / '1_image.png')
+
+Stage 6. Extract syntactic patterns using graphs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For a mark higher than 8, you are required to be able to perform
+searching for a certain pattern using
+information from ``.conllu`` files and the functionality of ``networkx`` library.
+
+See examples for a better understanding: `Raw text
+<https://github.com/fipl-hse/2023-2-level-ctlr/blob/main/
+lab_6_pipeline/tests/test_files/1_raw.txt>`__ - `Desired output
+<https://github.com/fipl-hse/2023-2-level-ctlr/blob/main/
+lab_6_pipeline/tests/test_files/1_meta.json>`__.
+
+.. tip:: To learn more about the ``networkx``,
+         inspect `the official documentation of the library
+         <https://networkx.org/documentation/stable/>`__.
+
+Stage 6.1. Introduce ``PatternSearchPipeline`` abstraction
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Now we are going to work with
+the :py:class:`lab_6_pipeline.pipeline.PatternSearchPipeline` class.
+During instantiation it must accept an instance of ``CorpusManager``,
+instance of ``StanzaAnalyzer`` and tuple of POS tags
+for required syntactic pattern.
+
+In this laboratory work we are interested in exploring
+verb control noun with preposition models, that is why there would be
+the following instantiation:
+
+.. code:: python
+
+   corpus_manager = CorpusManager(...)
+   stanza_analyzer = StanzaAnalyzer()
+   visualizer = PatternSearchPipeline(corpus_manager, stanza_analyzer, ("VERB", "NOUN", "ADP"))
+
+During instantiation, provided instances of ``CorpusManager`` and ``StanzaAnalyzer``
+are stored in the ``self._corpus``, ``self._analyzer`` attributes.
+A tuple of POS tags is stored in the ``self._node_labels`` attribute.
+
+Stage 6.1. Make syntactic graphs via ``PatternSearchPipeline`` abstraction
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In this laboratory work we are going to search for patterns
+using graphs of syntactic dependencies. This approach facilitates effortless
+scaling of pattern sizes, enabling the discovery of syntactic patterns
+of varying lengths and widths.
+
+.. note:: The idea of the graph of syntactic dependencies is based on the
+    `Dependency grammar <https://en.wikipedia.org/wiki/Dependency_grammar>`__.
+    It represents the structure of a sentence in the form of a hierarchy of components
+    between which dependency relationships are established.
+    Thus, sentence structure is considered in terms of
+    vertices (roots) and dependents (children).
+
+Before looking for a patterns, we have to create syntactic graph
+of each sentence in the article which we will subsequently search for.
+
+Example of the graph for the sentence: Я учусь в университете.
+
+   .. figure:: ../docs/images/sample_sentence_graph.png
+      :alt: sentence graph sample
+
+In order to make a graph of syntactic dependencies for each sentence in the article,
+you are required to implement a
+:py:meth:`lab_6_pipeline.pipeline.PatternSearchPipeline._make_graphs` method.
+
+The method accepts
+one instance of :py:class:`core_utils.pipeline.CoNLLUDocument` as an argument.
+It is presumed that the given document object
+contains information from ``.conllu`` file
+which was obtained using :py:meth:`core_utils.pipeline.LibraryWrapper.from_conllu` method.
+
+The :py:meth:`lab_6_pipeline.pipeline.PatternSearchPipeline._make_graphs` method
+iterates through each sentence in the article and creates nodes and edges for the words
+in the sentence. Pass ``upos`` as ``label`` argument when creating node and
+``deprel`` as a ``label`` argument when creating edge.
+Edges should connect this word with its parent using dependency relation.
+
+.. tip:: To make a graph it is mandatory to use an instance of
+    `DiGraph <https://networkx.org/documentation/stable/reference/classes/digraph.html>`__ class.
+
+Stage 6.2. Find syntactic patterns via ``PatternSearchPipeline`` abstraction
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+After creating graphs of syntactic dependencies for each sentence in the article,
+we are ready to search for the required pattern in it.
+
+The key idea is the following: we have the dependency graph of our sentence
+and we want to make an ideal graph for our pattern.
+
+.. note:: Your implementation on creating an ideal graph
+    should be scalable, which means that it is not tied
+    to a specific syntactic pattern.
+
+Example of the ideal graph for our syntactic pattern:
+
+   .. figure:: ../docs/images/sample_ideal_graph.png
+      :alt: ideal graph sample
+
+After that, we are searching for the subgraphs in our graph
+which are isomorphic to the ideal graph which represents our syntactic pattern.
+
+.. note:: Isomorphic graphs are graphs that have the same structure,
+    meaning they have the same number of vertices (points) and edges (connections between points),
+    and these connections are arranged in the same way.
+    The simple example is two different maps of the same city
+    that show the same streets and intersections but might label them differently.
+
+After we have found all isomorphic graphs, we instantiate the `GraphMatcher
+<https://networkx.org/documentation/stable/reference/algorithms/isomorphism.vf2.html#graph-matcher>`__
+class. During instantiation it takes an isomorphic ideal graph and subgraph
+and an anonymous function to fill the ``node_match`` argument with the logic
+of comparing labels of these graphs. This way we can find all subgraphs which
+match with required POS tags of the syntactic pattern.
+
+However, it is not everything. Graphs are just a convenient way to
+search for a certain pattern. If we want to further analyze information
+about the received patterns or calculate some statistics we need to use
+a more traditional way of storing information.
+
+For these aims there are
+:py:class:`core_utils.pipeline.TreeNode` class.
+It stores information about the node of the tree.
+You have to instantiate it with the POS tag,
+text and list of dependent children of your node.
+
+To add all children to this list you have to implement a
+:py:meth:`lab_6_pipeline.pipeline.PatternSearchPipeline._add_children` method.
+It accepts the current graph - an instance of
+`DiGraph <https://networkx.org/documentation/stable/reference/classes/digraph.html>`__ class,
+a dictionary with matched subgraphs, ID of the root node and
+root node of the matched subgraph. It iterates through the available
+children of the accepted root node, instantiates :py:class:`core_utils.pipeline.TreeNode` class
+and appends information about the new children into root node.
+
+The method works recursively: until all the children of the current root node
+will not be found.
+
+.. note:: Recursion is a method where a function calls itself to solve a problem.
+        It's like a loop that repeats an action, but instead of using a traditional loop structure,
+        the function keeps calling itself with a modified parameter
+        until it reaches a condition that tells it to stop,
+        known as the base case.
+
+.. code:: python
+
+    # A classic example of recursion is calculating the factorial of a number
+
+    def calculate_factorial(number):
+        if number == 1: # Base case
+            return 1
+        else:
+            return number * calculate_factorial(number - 1) # Recursive case
+
+The :py:meth:`lab_6_pipeline.pipeline.PatternSearchPipeline._find_pattern` method
+returns a dictionary which as keys contains the indexes of sentences
+where the required pattern was found,
+and as values a list of :py:class:`core_utils.pipeline.TreeNode` class instances
+with information about the pattern matches.
+
+Stage 6.3. Implement core logic of ``PatternSearchPipeline``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. important:: **Stages 0-6.3** are required to get the **mark 10**.
+
+The :py:class:`lab_6_pipeline.pipeline.PatternSearchPipeline`
+is executed with the same interface method
+:py:meth:`lab_6_pipeline.pipeline.PatternSearchPipeline.run`
+that you need to implement.
+
+Once executed,
+:py:meth:`lab_6_pipeline.pipeline.PatternSearchPipeline.run`:
+
+1. Iterates through the available articles taken from
+   :py:class:`lab_6_pipeline.pipeline.CorpusManager`.
+2. Retrieves UD information for each article via ``StanzaAnalyzer`` interface
+   (notice only ``N_stanza_conllu.conllu`` files can be used).
+3. Makes graphs of syntactic dependencies for each article via protected method
+   :py:meth:`lab_6_pipeline.pipeline.PatternSearchPipeline._make_graphs`.
+4. Searches for the required pattern for each article via protected method
+   :py:meth:`lab_6_pipeline.pipeline.PatternSearchPipeline._find_pattern`.
+5. Writes them to the meta file via ``Article`` instance interface.
+
+.. note:: It is mandatory to get articles with the
+          :py:meth:`lab_6_pipeline.pipeline.CorpusManager.get_articles` method.
+
+.. note:: It is mandatory to use :py:meth:`core_utils.article.article.Article.get_file_path`,
+          :py:meth:`core_utils.article.article.Article.set_pos_info` method and
+          :py:func:`core_utils.article.io.to_meta` function.
+
+.. attention:: Make sure that resulting meta files are valid: they must
+               contain no more than one dictionary-like object.
