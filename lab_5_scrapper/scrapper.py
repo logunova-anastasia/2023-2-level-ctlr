@@ -510,4 +510,4 @@ def recursive_main() -> None:
 
 
 if __name__ == "__main__":
-    recursive_main()
+    main()
