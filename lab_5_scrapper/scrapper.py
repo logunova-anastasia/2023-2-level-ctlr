@@ -424,7 +424,7 @@ class CrawlerRecursive(Crawler):
         }
         if not ASSETS_PATH.exists():
             ASSETS_PATH.mkdir(parents=True)
-            
+
         with open(self.path, 'w', encoding='utf-8') as file:
             json.dump(data, file, indent=4)
 
