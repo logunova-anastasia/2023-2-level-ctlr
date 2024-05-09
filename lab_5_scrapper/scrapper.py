@@ -24,49 +24,42 @@ class IncorrectSeedURLError(Exception):
     """
     Seed URL does not match standard pattern
     """
-    pass
 
 
 class NumberOfArticlesOutOfRangeError(Exception):
     """
     Total number of articles is out of range from 1 to 150
     """
-    pass
 
 
 class IncorrectNumberOfArticlesError(Exception):
     """
     Total number of articles to parse is not positive integer
     """
-    pass
 
 
 class IncorrectHeadersError(Exception):
     """
     Headers are not in a form of dictionary
     """
-    pass
 
 
 class IncorrectEncodingError(Exception):
     """
     Encoding is not a string
     """
-    pass
 
 
 class IncorrectTimeoutError(Exception):
     """
     Timeout value is not a positive integer less than 60
     """
-    pass
 
 
 class IncorrectVerifyError(Exception):
     """
     Verify certificate value is not True or False
     """
-    pass
 
 
 class Config:
@@ -116,7 +109,8 @@ class Config:
             if not re.match(r"https?://(www.)?scientificrussia\.ru/news", seed_url):
                 raise IncorrectSeedURLError
 
-        if not isinstance(self.config_dto.total_articles, int) or self.config_dto.total_articles <= 0:
+        if not isinstance(self.config_dto.total_articles, int) or \
+                self.config_dto.total_articles <= 0:
             raise IncorrectNumberOfArticlesError
 
         if not 0 < self.config_dto.total_articles < 150:
@@ -243,7 +237,8 @@ class Crawler:
         Returns:
             str: Url from HTML
         """
-        return self.url_pattern + str(article_bs.find('a').get('href')) if article_bs.find('a').get('href') else ''
+        return self.url_pattern + str(article_bs.find('a').get('href')) \
+            if article_bs.find('a').get('href') else ''
 
     def find_articles(self) -> None:
         """
@@ -320,7 +315,7 @@ class HTMLParser:
         author = article_soup.find(class_="props distant").find_all(class_='author')
 
         if author:
-            self.article.author = [i.text.strip() for i in author]
+            self.article.author = [' '.join(i.text.split()[1:]) for i in author]
         else:
             self.article.author = ["NOT FOUND"]
 
@@ -397,6 +392,7 @@ class CrawlerRecursive(Crawler):
         self.possible_urls = [self.start_url]
         self.path = ASSETS_PATH.parent / 'recursive_crawler.json'
         self.visited_urls = []
+        self.created_articles = []
         self.get_info()
 
     def get_info(self) -> None:
@@ -404,6 +400,7 @@ class CrawlerRecursive(Crawler):
         Get information about the crawler from a file.
         """
         if not self.path.exists():
+            shutil.rmtree(ASSETS_PATH)
             return
 
         with open(self.path, 'r', encoding='utf-8') as file:
@@ -412,6 +409,7 @@ class CrawlerRecursive(Crawler):
         self.urls = data['urls']
         self.possible_urls = data['possible_urls']
         self.visited_urls = data['visited_urls']
+        self.created_articles = data['created_articles']
 
     def save_info(self) -> None:
         """
@@ -421,8 +419,12 @@ class CrawlerRecursive(Crawler):
             'urls': self.urls,
             'number of collected urls': len(self.urls),
             'possible_urls': self.possible_urls,
-            'visited_urls': self.visited_urls
+            'visited_urls': self.visited_urls,
+            'created_articles': self.created_articles
         }
+        if not ASSETS_PATH.exists():
+            ASSETS_PATH.mkdir(parents=True)
+            
         with open(self.path, 'w', encoding='utf-8') as file:
             json.dump(data, file, indent=4)
 
@@ -488,18 +490,24 @@ def main() -> None:
 
 
 def recursive_main() -> None:
+    """
+    Entrypoint for recursive scrapper module.
+    """
     conf = Config(CRAWLER_CONFIG_PATH)
-    prepare_environment(ASSETS_PATH)
+
     crawler = CrawlerRecursive(conf)
     crawler.find_articles()
 
     for id_num, url in enumerate(crawler.urls, 1):
-        parser = HTMLParser(url, id_num, conf)
-        article = parser.parse()
-        if isinstance(article, Article):
-            to_raw(article)
-            to_meta(article)
+        if url not in crawler.created_articles:
+            parser = HTMLParser(url, id_num, conf)
+            article = parser.parse()
+            if isinstance(article, Article):
+                to_raw(article)
+                to_meta(article)
+            crawler.created_articles.append(url)
+            crawler.save_info()
 
 
 if __name__ == "__main__":
-    main()
+    recursive_main()
