@@ -10,7 +10,7 @@ from networkx import DiGraph
 from core_utils.article.article import (Article, ArtifactType, get_article_id_from_filepath,
                                         split_by_sentence)
 from core_utils.article.io import from_raw, to_cleaned
-from core_utils.constants import UDPIPE_MODEL_PATH
+from core_utils.constants import UDPIPE_MODEL_PATH, ASSETS_PATH
 from core_utils.pipeline import (AbstractCoNLLUAnalyzer, CoNLLUDocument, LibraryWrapper,
                                  PipelineProtocol, StanzaDocument, TreeNode)
 
@@ -324,6 +324,10 @@ def main() -> None:
     """
     Entrypoint for pipeline module.
     """
+    manager = CorpusManager(ASSETS_PATH)
+    analyzer = UDPipeAnalyzer()
+    pipeline = TextProcessingPipeline(manager, analyzer)
+    pipeline.run()
 
 
 if __name__ == "__main__":
