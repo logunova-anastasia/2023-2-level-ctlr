@@ -16,15 +16,21 @@ from core_utils.pipeline import (AbstractCoNLLUAnalyzer, CoNLLUDocument, Library
 
 
 class EmptyDirectoryError(Exception):
-    pass
+    """
+    Directory is empty.
+    """
 
 
 class InconsistentDatasetError(Exception):
-    pass
+    """
+    IDs contain slips, number of meta and raw files is not equal, files are empty
+    """
 
 
 class EmptyFileError(Exception):
-    pass
+    """
+    Article file is empty
+    """
 
 
 class CorpusManager:
