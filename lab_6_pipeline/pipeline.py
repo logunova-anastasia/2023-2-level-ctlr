@@ -73,12 +73,12 @@ class CorpusManager:
         if len(raw_files) != len(meta_files):
             raise InconsistentDatasetError
 
-        sorted_raw_files = sorted(raw_files, key=lambda file: get_article_id_from_filepath(file))
-        sorted_meta_files = sorted(meta_files, key=lambda file: get_article_id_from_filepath(file))
+        sorted_raw_files = sorted(raw_files, key=get_article_id_from_filepath)
+        sorted_meta_files = sorted(meta_files, key=get_article_id_from_filepath)
 
         for ind, (raw, meta) in enumerate(zip(sorted_raw_files, sorted_meta_files)):
-            if ind + 1 != get_article_id_from_filepath(raw) or ind + 1 != get_article_id_from_filepath(meta) or \
-                    any(file.stat().st_size == 0 for file in (raw_files + meta_files)):
+            if ind + 1 != get_article_id_from_filepath(raw) or ind + 1 != get_article_id_from_filepath(
+                    meta) or any(file.stat().st_size == 0 for file in (raw_files + meta_files)):
                 raise InconsistentDatasetError
 
     def _scan_dataset(self) -> None:
@@ -86,7 +86,8 @@ class CorpusManager:
         Register each dataset entry.
         """
         self._storage = {get_article_id_from_filepath(file): from_raw(file, Article(
-            None, get_article_id_from_filepath(file))) for file in list(self.path_to_raw_txt_data.glob("*_raw.txt"))}
+            None, get_article_id_from_filepath(file))) for file in list(
+            self.path_to_raw_txt_data.glob("*_raw.txt"))}
 
     def get_articles(self) -> dict:
         """
@@ -120,7 +121,8 @@ class TextProcessingPipeline(PipelineProtocol):
         """
         Perform basic preprocessing and write processed text to files.
         """
-        documents = self.analyzer.analyze([article.text for article in self._corpus.get_articles().values()])
+        documents = self.analyzer.analyze([article.text for article in
+                                           self._corpus.get_articles().values()])
 
         for ind, article in enumerate(self._corpus.get_articles().values()):
             to_cleaned(article)
@@ -182,7 +184,8 @@ class UDPipeAnalyzer(LibraryWrapper):
         Args:
             article (Article): Article containing information to save
         """
-        with open(article.get_file_path(ArtifactType.UDPIPE_CONLLU), 'w', encoding='utf-8') as annotation_file:
+        with open(article.get_file_path(ArtifactType.UDPIPE_CONLLU),
+                  'w', encoding='utf-8') as annotation_file:
             annotation_file.write(article.get_conllu_info())
             annotation_file.write("\n")
 
@@ -299,7 +302,8 @@ class POSFrequencyPipeline:
         for conllu_sentence in self._analyzer.from_conllu(article).sentences:
             for word in conllu_sentence.words:
                 word_feature = word.to_dict()['upos']
-                sentences_features[word_feature] = str(self._analyzer.from_conllu(article).sentences).count(word_feature)
+                sentences_features[word_feature] = str(self._analyzer.from_conllu(
+                    article).sentences).count(word_feature)
         return sentences_features
 
 
