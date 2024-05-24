@@ -87,7 +87,8 @@ class CorpusManager:
         Register each dataset entry.
         """
         self._storage = {
-            get_article_id_from_filepath(file): from_raw(file, Article(None, get_article_id_from_filepath(file)))
+            get_article_id_from_filepath(file):
+            from_raw(file, Article(None, get_article_id_from_filepath(file)))
             for file in list(self.path_to_raw_txt_data.glob("*_raw.txt"))
         }
 
