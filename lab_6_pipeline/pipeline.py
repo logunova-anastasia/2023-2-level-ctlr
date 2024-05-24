@@ -86,9 +86,10 @@ class CorpusManager:
         """
         Register each dataset entry.
         """
-        self._storage = {get_article_id_from_filepath(file): from_raw(file, Article(
-            None, get_article_id_from_filepath(file))) for file in list(
-            self.path_to_raw_txt_data.glob("*_raw.txt"))}
+        self._storage = {
+            get_article_id_from_filepath(file): from_raw(file, Article(None, get_article_id_from_filepath(file)))
+            for file in list(self.path_to_raw_txt_data.glob("*_raw.txt"))
+        }
 
     def get_articles(self) -> dict:
         """
@@ -106,7 +107,7 @@ class TextProcessingPipeline(PipelineProtocol):
     """
 
     def __init__(
-            self, corpus_manager: CorpusManager, analyzer: LibraryWrapper | None = None
+        self, corpus_manager: CorpusManager, analyzer: LibraryWrapper | None = None
     ) -> None:
         """
         Initialize an instance of the TextProcessingPipeline class.
@@ -300,11 +301,11 @@ class POSFrequencyPipeline:
             dict[str, int]: POS frequencies
         """
         sentences_features = {}
+        str_conllu = str(self._analyzer.from_conllu(article).sentences)
         for conllu_sentence in self._analyzer.from_conllu(article).sentences:
             for word in conllu_sentence.words:
                 word_feature = word.to_dict()['upos']
-                sentences_features[word_feature] = str(self._analyzer.from_conllu(
-                    article).sentences).count(word_feature)
+                sentences_features[word_feature] = str_conllu.count(word_feature)
         return sentences_features
 
 
@@ -314,7 +315,7 @@ class PatternSearchPipeline(PipelineProtocol):
     """
 
     def __init__(
-            self, corpus_manager: CorpusManager, analyzer: LibraryWrapper, pos: tuple[str, ...]
+        self, corpus_manager: CorpusManager, analyzer: LibraryWrapper, pos: tuple[str, ...]
     ) -> None:
         """
         Initialize an instance of the PatternSearchPipeline class.
@@ -337,7 +338,7 @@ class PatternSearchPipeline(PipelineProtocol):
         """
 
     def _add_children(
-            self, graph: DiGraph, subgraph_to_graph: dict, node_id: int, tree_node: TreeNode
+        self, graph: DiGraph, subgraph_to_graph: dict, node_id: int, tree_node: TreeNode
     ) -> None:
         """
         Add children to TreeNode.
