@@ -302,11 +302,12 @@ class POSFrequencyPipeline:
             dict[str, int]: POS frequencies
         """
         sentences_features = {}
-        str_conllu = str(self._analyzer.from_conllu(article).sentences)
+
         for conllu_sentence in self._analyzer.from_conllu(article).sentences:
-            for word in conllu_sentence.words:
-                word_feature = word.to_dict()['upos']
-                sentences_features[word_feature] = str_conllu.count(word_feature)
+            word_features = [word.to_dict()['upos'] for word in conllu_sentence.words]
+            for word in word_features:
+                sentences_features[word] = word_features.count(word)
+
         return sentences_features
 
 
